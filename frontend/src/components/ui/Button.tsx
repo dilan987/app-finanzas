@@ -7,25 +7,26 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   fullWidth?: boolean;
   icon?: ReactNode;
+  iconPosition?: 'left' | 'right';
 }
 
-const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
+const variantClasses: Record<string, string> = {
   primary:
-    'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600',
+    'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-xs hover:shadow-xs active:scale-[0.98]',
   secondary:
-    'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600',
+    'border bg-surface-card hover:bg-surface-secondary focus:ring-primary-500 active:scale-[0.98]',
   danger:
-    'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 dark:bg-red-500 dark:hover:bg-red-600',
+    'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-xs hover:shadow-xs active:scale-[0.98]',
   success:
-    'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-600',
+    'bg-income text-white hover:bg-income-dark focus:ring-income shadow-xs hover:shadow-xs active:scale-[0.98]',
   ghost:
-    'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-400 dark:text-gray-300 dark:hover:bg-gray-800',
+    'hover:bg-surface-tertiary focus:ring-primary-500 active:scale-[0.98]',
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps['size']>, string> = {
-  sm: 'px-3 py-1.5 text-sm gap-1.5',
-  md: 'px-4 py-2 text-sm gap-2',
-  lg: 'px-6 py-3 text-base gap-2.5',
+  sm: 'px-3 py-1.5 text-sm gap-1.5 rounded-lg',
+  md: 'px-4 py-2.5 text-sm gap-2 rounded-lg',
+  lg: 'px-6 py-3 text-base gap-2.5 rounded-xl',
 };
 
 export default function Button({
@@ -35,6 +36,7 @@ export default function Button({
   disabled = false,
   fullWidth = false,
   icon,
+  iconPosition = 'left',
   children,
   className = '',
   ...rest
@@ -45,11 +47,12 @@ export default function Button({
     <button
       disabled={isDisabled}
       className={`
-        inline-flex items-center justify-center rounded-lg font-medium
-        transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2
-        dark:focus:ring-offset-gray-900
+        inline-flex items-center justify-center font-semibold
+        transition-all duration-fast focus:outline-none focus:ring-2 focus:ring-offset-2
         ${variantClasses[variant]}
         ${sizeClasses[size]}
+        ${variant === 'secondary' ? 'border-border-primary text-text-primary' : ''}
+        ${variant === 'ghost' ? 'text-text-secondary' : ''}
         ${fullWidth ? 'w-full' : ''}
         ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}
         ${className}
@@ -58,10 +61,13 @@ export default function Button({
     >
       {loading ? (
         <Spinner size={size === 'lg' ? 'md' : 'sm'} className="text-current" />
-      ) : icon ? (
+      ) : icon && iconPosition === 'left' ? (
         <span className="shrink-0">{icon}</span>
       ) : null}
       {children && <span>{children}</span>}
+      {!loading && icon && iconPosition === 'right' ? (
+        <span className="shrink-0">{icon}</span>
+      ) : null}
     </button>
   );
 }

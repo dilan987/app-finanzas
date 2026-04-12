@@ -8,7 +8,7 @@ export const pdfQuerySchema = z.object({
 export const csvQuerySchema = z.object({
   type: z
     .enum(['INCOME', 'EXPENSE'], {
-      errorMap: () => ({ message: 'Type must be INCOME or EXPENSE' }),
+      message: 'Type must be INCOME or EXPENSE',
     })
     .optional(),
   categoryId: z.string().min(1, 'Category ID is required').optional(),
@@ -22,9 +22,7 @@ export const csvQuerySchema = z.object({
     .optional(),
   paymentMethod: z
     .enum(['CASH', 'DEBIT_CARD', 'CREDIT_CARD', 'TRANSFER'], {
-      errorMap: () => ({
-        message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
-      }),
+      message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
     })
     .optional(),
   minAmount: z.coerce.number().positive('Minimum amount must be positive').optional(),

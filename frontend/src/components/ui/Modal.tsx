@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { HiXMark } from 'react-icons/hi2';
 
 interface ModalProps {
@@ -49,53 +50,63 @@ export default function Modal({
     if (e.target === overlayRef.current) onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      ref={overlayRef}
-      onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-200"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={title ? 'modal-title' : undefined}
-    >
-      <div
-        className={`
-          w-full ${sizeClasses[size]} transform rounded-xl bg-white shadow-xl
-          transition-all duration-200 animate-in slide-in-from-bottom-4 fade-in
-          dark:bg-gray-800
-        `}
-      >
-        {/* Header */}
-        {title && (
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
-            <h2
-              id="modal-title"
-              className="text-lg font-semibold text-gray-900 dark:text-gray-100"
-            >
-              {title}
-            </h2>
-            <button
-              onClick={onClose}
-              className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-              aria-label="Cerrar"
-            >
-              <HiXMark className="h-5 w-5" />
-            </button>
-          </div>
-        )}
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          ref={overlayRef}
+          onClick={handleOverlayClick}
+          className="fixed inset-0 z-modal flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? 'modal-title' : undefined}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
 
-        {/* Body */}
-        <div className="px-6 py-4">{children}</div>
+          {/* Content */}
+          <motion.div
+            className={`
+              relative w-full ${sizeClasses[size]} rounded-2xl bg-surface-card shadow-lg
+              border border-border-primary
+            `}
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.2, ease: [0, 0, 0.2, 1] }}
+          >
+            {title && (
+              <div className="flex items-center justify-between border-b border-border-primary px-6 py-4">
+                <h2
+                  id="modal-title"
+                  className="text-lg font-semibold text-text-primary"
+                >
+                  {title}
+                </h2>
+                <button
+                  onClick={onClose}
+                  className="rounded-lg p-1.5 text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+                  aria-label="Cerrar"
+                >
+                  <HiXMark className="h-5 w-5" />
+                </button>
+              </div>
+            )}
 
-        {/* Footer */}
-        {footer && (
-          <div className="flex items-center justify-end gap-3 border-t border-gray-200 px-6 py-4 dark:border-gray-700">
-            {footer}
-          </div>
-        )}
-      </div>
-    </div>
+            <div className="px-6 py-5">{children}</div>
+
+            {footer && (
+              <div className="flex items-center justify-end gap-3 border-t border-border-primary px-6 py-4">
+                {footer}
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

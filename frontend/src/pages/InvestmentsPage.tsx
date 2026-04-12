@@ -15,6 +15,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import EmptyState from '../components/ui/EmptyState';
 import StatCard from '../components/ui/StatCard';
@@ -44,6 +45,18 @@ const TYPE_COLORS: Record<InvestmentType, string> = {
 
 function getTypeLabel(type: InvestmentType): string {
   return INVESTMENT_TYPES.find((t) => t.value === type)?.label ?? type;
+}
+
+function getTypeBadgeVariant(type: InvestmentType): 'info' | 'invest' | 'warning' | 'expense' | 'neutral' {
+  switch (type) {
+    case 'STOCKS': return 'info';
+    case 'CDT': return 'expense';
+    case 'CRYPTO': return 'warning';
+    case 'FUND': return 'info';
+    case 'FOREX': return 'invest';
+    case 'OTHER': return 'neutral';
+    default: return 'neutral';
+  }
 }
 
 interface InvestmentFormState {
@@ -146,7 +159,7 @@ export default function InvestmentsPage() {
         };
         const res = await investmentsApi.update(editingId, data);
         setInvestments((prev) => prev.map((i) => (i.id === editingId ? res.data.data : i)));
-        toast.success('Inversión actualizada');
+        toast.success('Inversion actualizada');
       } else {
         const data: CreateInvestmentData = {
           name: form.name,
@@ -158,14 +171,14 @@ export default function InvestmentsPage() {
         };
         const res = await investmentsApi.create(data);
         setInvestments((prev) => [...prev, res.data.data]);
-        toast.success('Inversión creada');
+        toast.success('Inversion creada');
       }
       setModalOpen(false);
       // Reload summary
       const sumRes = await investmentsApi.getSummary();
       setSummary(mapSummary(sumRes.data.data));
     } catch {
-      toast.error('Error al guardar inversión');
+      toast.error('Error al guardar inversion');
     } finally {
       setSaving(false);
     }
@@ -177,12 +190,12 @@ export default function InvestmentsPage() {
     try {
       await investmentsApi.delete(deleteId);
       setInvestments((prev) => prev.filter((i) => i.id !== deleteId));
-      toast.success('Inversión eliminada');
+      toast.success('Inversion eliminada');
       setDeleteId(null);
       const sumRes = await investmentsApi.getSummary();
       setSummary(mapSummary(sumRes.data.data));
     } catch {
-      toast.error('Error al eliminar inversión');
+      toast.error('Error al eliminar inversion');
     } finally {
       setDeleting(false);
     }
@@ -208,9 +221,9 @@ export default function InvestmentsPage() {
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Inversiones</h1>
+        <h1 className="text-2xl font-bold text-text-primary">Inversiones</h1>
         <Button icon={<HiPlus className="h-4 w-4" />} onClick={openCreate}>
-          Nueva Inversión
+          Nueva Inversion
         </Button>
       </div>
 
@@ -219,33 +232,37 @@ export default function InvestmentsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             icon={<HiBanknotes className="h-5 w-5" />}
-            iconBgClass="bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400"
+            iconBgClass="bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-400"
             label="Total invertido"
             value={formatCurrency(summary.totalInvested)}
+            index={0}
           />
           <StatCard
             icon={<HiChartPie className="h-5 w-5" />}
-            iconBgClass="bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400"
+            iconBgClass="bg-invest-bg text-invest dark:bg-[rgba(139,92,246,0.12)] dark:text-invest-light"
             label="Valor actual"
             value={formatCurrency(summary.totalCurrentValue)}
+            index={1}
           />
           <StatCard
             icon={summary.totalReturn >= 0 ? <HiArrowTrendingUp className="h-5 w-5" /> : <HiArrowTrendingDown className="h-5 w-5" />}
             iconBgClass={summary.totalReturn >= 0
-              ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
-              : 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400'
+              ? 'bg-income-bg text-income dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light'
+              : 'bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light'
             }
             label="Rendimiento total"
             value={formatCurrency(summary.totalReturn)}
+            index={2}
           />
           <StatCard
             icon={<HiArrowTrendingUp className="h-5 w-5" />}
             iconBgClass={summary.returnPercentage >= 0
-              ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
-              : 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400'
+              ? 'bg-income-bg text-income dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light'
+              : 'bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light'
             }
             label="Rendimiento %"
             value={`${(summary.returnPercentage ?? 0) >= 0 ? '+' : ''}${(summary.returnPercentage ?? 0).toFixed(2)}%`}
+            index={3}
           />
         </div>
       )}
@@ -255,64 +272,69 @@ export default function InvestmentsPage() {
           icon={<HiBanknotes className="h-8 w-8" />}
           title="Sin inversiones"
           description="Registra tus inversiones para hacer seguimiento de tu portafolio."
-          actionLabel="Agregar Inversión"
+          actionLabel="Agregar Inversion"
           onAction={openCreate}
         />
       ) : (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          {/* Investment List */}
-          <div className="space-y-4 xl:col-span-2">
+          {/* Investment Cards Grid */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:col-span-2">
             {investments.map((inv) => {
               const returnAmount = inv.currentValue - inv.amountInvested;
               const returnPct = inv.amountInvested > 0 ? ((returnAmount / inv.amountInvested) * 100) : 0;
               const isPositive = returnAmount >= 0;
               return (
-                <Card key={inv.id} padding="md">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex-1 space-y-1">
+                <div
+                  key={inv.id}
+                  className="group rounded-xl border border-border-primary bg-surface-card p-5 shadow-card transition-all hover:shadow-card-hover"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{inv.name}</h3>
-                        <span
-                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white"
-                          style={{ backgroundColor: TYPE_COLORS[inv.type] }}
-                        >
+                        <h3 className="font-semibold text-text-primary truncate">{inv.name}</h3>
+                        <Badge variant={getTypeBadgeVariant(inv.type)}>
                           {getTypeLabel(inv.type)}
-                        </span>
+                        </Badge>
                       </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
-                        <span>Invertido: <span className="font-medium text-gray-700 dark:text-gray-300">{formatCurrency(inv.amountInvested)}</span></span>
-                        <span>Valor actual: <span className="font-medium text-gray-700 dark:text-gray-300">{formatCurrency(inv.currentValue)}</span></span>
-                        <span>Inicio: {formatShortDate(inv.startDate)}</span>
-                      </div>
+                      <p className="mt-1 text-xs text-text-tertiary">
+                        Inicio: {formatShortDate(inv.startDate)}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className={`text-lg font-bold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                          {isPositive ? '+' : ''}{formatCurrency(returnAmount)}
-                        </p>
-                        <p className={`text-xs font-medium ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-                          {isPositive ? '+' : ''}{returnPct.toFixed(2)}%
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => openEdit(inv)}
-                          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                          aria-label="Editar"
-                        >
-                          <HiPencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteId(inv.id)}
-                          className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                          aria-label="Eliminar"
-                        >
-                          <HiTrash className="h-4 w-4" />
-                        </button>
-                      </div>
+                    <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        onClick={() => openEdit(inv)}
+                        className="rounded-lg p-1.5 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary transition-colors"
+                        aria-label="Editar"
+                      >
+                        <HiPencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteId(inv.id)}
+                        className="rounded-lg p-1.5 text-text-tertiary hover:bg-expense-bg hover:text-expense transition-colors"
+                        aria-label="Eliminar"
+                      >
+                        <HiTrash className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
-                </Card>
+
+                  <div className="mt-4 flex items-end justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs text-text-tertiary">Invertido</p>
+                      <p className="text-sm font-medium text-text-secondary">{formatCurrency(inv.amountInvested)}</p>
+                      <p className="text-xs text-text-tertiary">Valor actual</p>
+                      <p className="text-sm font-medium text-text-primary">{formatCurrency(inv.currentValue)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-xl font-bold ${isPositive ? 'text-income' : 'text-expense'}`}>
+                        {isPositive ? '+' : ''}{formatCurrency(returnAmount)}
+                      </p>
+                      <Badge variant={isPositive ? 'income' : 'expense'} className="mt-1">
+                        {isPositive ? '+' : ''}{returnPct.toFixed(2)}%
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -320,20 +342,20 @@ export default function InvestmentsPage() {
           {/* Distribution Chart */}
           <div className="space-y-4">
             {pieData.length > 0 && (
-              <Card title="Distribución por tipo" padding="md">
+              <Card title="Distribucion por tipo" padding="md">
                 <CategoryPieChart data={pieData} height={300} centerLabel="Portafolio" />
               </Card>
             )}
 
             {/* Coming Soon Banner */}
-            <div className="flex items-center gap-3 rounded-xl border border-dashed border-blue-300 bg-blue-50 p-4 dark:border-blue-700 dark:bg-blue-900/20">
-              <HiRocketLaunch className="h-6 w-6 shrink-0 text-blue-500 dark:text-blue-400" />
+            <div className="flex items-center gap-3 rounded-xl border border-dashed border-primary-300 bg-primary-50/50 p-4 dark:border-primary-700 dark:bg-primary-950/20">
+              <HiRocketLaunch className="h-6 w-6 shrink-0 text-primary-500 dark:text-primary-400" />
               <div>
-                <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                  Próximamente: datos en tiempo real
+                <p className="text-sm font-medium text-primary-800 dark:text-primary-300">
+                  Proximamente: datos en tiempo real
                 </p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">
-                  Sincronización automática de precios y rendimiento de mercado.
+                <p className="text-xs text-primary-600 dark:text-primary-400">
+                  Sincronizacion automatica de precios y rendimiento de mercado.
                 </p>
               </div>
             </div>
@@ -345,7 +367,7 @@ export default function InvestmentsPage() {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingId ? 'Editar Inversión' : 'Nueva Inversión'}
+        title={editingId ? 'Editar Inversion' : 'Nueva Inversion'}
         size="lg"
         footer={
           <>
@@ -353,7 +375,7 @@ export default function InvestmentsPage() {
               Cancelar
             </Button>
             <Button onClick={handleSubmit} loading={saving}>
-              {editingId ? 'Guardar Cambios' : 'Crear Inversión'}
+              {editingId ? 'Guardar Cambios' : 'Crear Inversion'}
             </Button>
           </>
         }
@@ -366,7 +388,7 @@ export default function InvestmentsPage() {
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
           <Select
-            label="Tipo de inversión"
+            label="Tipo de inversion"
             options={INVESTMENT_TYPES}
             value={form.type}
             onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as InvestmentType }))}
@@ -397,13 +419,13 @@ export default function InvestmentsPage() {
             onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
           />
           <div className="w-full">
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="mb-1 block text-sm font-medium text-text-secondary">
               Notas (opcional)
             </label>
             <textarea
               rows={3}
-              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-0 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:border-blue-400"
-              placeholder="Observaciones sobre esta inversión..."
+              className="block w-full rounded-lg border border-border-primary bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder-text-tertiary transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0"
+              placeholder="Observaciones sobre esta inversion..."
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
             />
@@ -416,8 +438,8 @@ export default function InvestmentsPage() {
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Eliminar Inversión"
-        message="¿Estás seguro de que deseas eliminar esta inversión? Esta acción no se puede deshacer."
+        title="Eliminar Inversion"
+        message="Estas seguro de que deseas eliminar esta inversion? Esta accion no se puede deshacer."
         confirmLabel="Eliminar"
         loading={deleting}
       />

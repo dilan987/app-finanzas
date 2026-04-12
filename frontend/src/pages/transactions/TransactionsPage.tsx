@@ -227,7 +227,7 @@ export default function TransactionsPage() {
 
       {/* Filter Bar */}
       {showFilters && (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-xs dark:border-gray-700 dark:bg-gray-800">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Select
               label="Tipo"
@@ -303,7 +303,7 @@ export default function TransactionsPage() {
       ) : (
         <>
           {/* Desktop Table */}
-          <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 md:block">
+          <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs dark:border-gray-700 dark:bg-gray-800 md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
@@ -398,7 +398,7 @@ export default function TransactionsPage() {
               <div
                 key={tx.id}
                 onClick={() => navigate(`/transactions/${tx.id}`)}
-                className="cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700/50"
+                className="cursor-pointer rounded-xl border border-gray-200 bg-white p-4 shadow-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700/50"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">

@@ -16,7 +16,7 @@ export default function Spinner({ size = 'md', className = '', ...rest }: Spinne
     <div
       role="status"
       aria-label="Cargando"
-      className={`inline-block animate-spin rounded-full border-blue-600 border-t-transparent dark:border-blue-400 dark:border-t-transparent ${sizeClasses[size]} ${className}`}
+      className={`inline-block animate-spin rounded-full border-primary-600 border-t-transparent dark:border-primary-400 dark:border-t-transparent ${sizeClasses[size]} ${className}`}
       {...rest}
     >
       <span className="sr-only">Cargando...</span>

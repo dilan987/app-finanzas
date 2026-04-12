@@ -4,6 +4,7 @@ import { HiEnvelope, HiPaperAirplane, HiCheckCircle } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
+import AuthLayout from '../components/layout/AuthLayout';
 import { authApi } from '../api/auth.api';
 
 export default function ForgotPasswordPage() {
@@ -41,93 +42,70 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-900">
-      <div className="w-full max-w-md">
-        {/* Logo / App Name */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 dark:bg-blue-500">
-            <span className="text-2xl font-bold text-white">F</span>
+    <AuthLayout
+      title="Recuperar Contrasena"
+      subtitle="Te enviaremos un enlace para restablecer tu contrasena"
+    >
+      {sent ? (
+        /* Success State */
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
+            <HiCheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Finanzas App
-          </h1>
-        </div>
-
-        {/* Card */}
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          {sent ? (
-            /* Success State */
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
-                <HiCheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-                Enlace enviado
-              </h2>
-              <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-                Hemos enviado un enlace de recuperacion a{' '}
-                <span className="font-medium text-gray-700 dark:text-gray-300">{email}</span>.
-                Revisa tu bandeja de entrada y sigue las instrucciones.
-              </p>
-              <Button
-                variant="secondary"
-                fullWidth
-                onClick={() => {
-                  setSent(false);
-                  setEmail('');
-                }}
-              >
-                Enviar de nuevo
-              </Button>
-            </div>
-          ) : (
-            /* Form State */
-            <>
-              <h2 className="mb-2 text-center text-lg font-semibold text-gray-900 dark:text-white">
-                Recuperar contrasena
-              </h2>
-              <p className="mb-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                Ingresa tu correo electronico y te enviaremos un enlace para restablecer tu
-                contrasena.
-              </p>
-
-              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-                <Input
-                  label="Correo electronico"
-                  type="email"
-                  placeholder="tu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  error={error}
-                  icon={<HiEnvelope className="h-4 w-4" />}
-                  autoComplete="email"
-                  disabled={loading}
-                />
-
-                <Button
-                  type="submit"
-                  fullWidth
-                  loading={loading}
-                  size="lg"
-                  icon={<HiPaperAirplane className="h-4 w-4" />}
-                >
-                  Enviar Enlace de Recuperacion
-                </Button>
-              </form>
-            </>
-          )}
-        </div>
-
-        {/* Link back to login */}
-        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          <Link
-            to="/login"
-            className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          <h2 className="mb-2 text-lg font-semibold text-text-primary">
+            Enlace enviado
+          </h2>
+          <p className="mb-6 text-sm text-text-secondary">
+            Hemos enviado un enlace de recuperacion a{' '}
+            <span className="font-medium text-text-primary">{email}</span>.
+            Revisa tu bandeja de entrada y sigue las instrucciones.
+          </p>
+          <Button
+            variant="secondary"
+            fullWidth
+            onClick={() => {
+              setSent(false);
+              setEmail('');
+            }}
           >
-            Volver a iniciar sesion
-          </Link>
-        </p>
-      </div>
-    </div>
+            Enviar de nuevo
+          </Button>
+        </div>
+      ) : (
+        /* Form State */
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <Input
+            label="Correo electronico"
+            type="email"
+            placeholder="tu@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={error}
+            icon={<HiEnvelope className="h-4 w-4" />}
+            autoComplete="email"
+            disabled={loading}
+          />
+
+          <Button
+            type="submit"
+            fullWidth
+            loading={loading}
+            size="lg"
+            icon={<HiPaperAirplane className="h-4 w-4" />}
+          >
+            Enviar enlace
+          </Button>
+        </form>
+      )}
+
+      <p className="mt-6 text-center text-sm text-text-secondary">
+        <Link
+          to="/login"
+          className="font-medium text-primary-600 hover:text-primary-700"
+        >
+          Volver a iniciar sesion
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }

@@ -4,7 +4,6 @@ import { HiUser, HiEnvelope, HiCurrencyDollar, HiPencilSquare } from 'react-icon
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
-import Card from '../components/ui/Card';
 import Spinner from '../components/ui/Spinner';
 import { useAuthStore } from '../store/authStore';
 import { usersApi } from '../api/users.api';
@@ -84,10 +83,17 @@ export default function ProfilePage() {
     );
   }
 
+  const initials = (user?.name ?? '')
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Mi Perfil</h1>
+        <h1 className="text-2xl font-bold text-text-primary">Mi Perfil</h1>
         {!editing && (
           <Button
             variant="secondary"
@@ -101,32 +107,39 @@ export default function ProfilePage() {
       </div>
 
       {/* Profile Avatar & Name */}
-      <Card padding="lg">
+      <div className="rounded-xl border border-border-primary bg-surface-card p-8 shadow-card">
         <div className="flex items-center gap-5">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
-            <HiUser className="h-10 w-10" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-100 text-primary-600 dark:bg-primary-950/40 dark:text-primary-400">
+            {initials ? (
+              <span className="text-2xl font-bold">{initials}</span>
+            ) : (
+              <HiUser className="h-10 w-10" />
+            )}
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-text-primary">
               {user?.name}
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
+            <p className="text-sm text-text-secondary">{user?.email}</p>
+            <p className="mt-1 text-xs text-text-tertiary">
+              {CURRENCY_OPTIONS.find((c) => c.value === user?.mainCurrency)?.label ?? user?.mainCurrency}
+            </p>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Profile Details */}
-      <Card padding="lg">
+      <div className="rounded-xl border border-border-primary bg-surface-card p-6 shadow-card">
         <div className="space-y-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-400">
               <HiUser className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <h2 className="text-lg font-semibold text-text-primary">
                 Informacion Personal
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-text-secondary">
                 Datos de tu cuenta
               </p>
             </div>
@@ -168,38 +181,38 @@ export default function ProfilePage() {
               </div>
             </>
           ) : (
-            <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
+            <div className="divide-y divide-border-primary">
               <div className="flex items-center gap-4 py-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                  <HiUser className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-tertiary">
+                  <HiUser className="h-5 w-5 text-text-tertiary" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Nombre completo</p>
-                  <p className="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">
+                  <p className="text-xs text-text-tertiary">Nombre completo</p>
+                  <p className="mt-0.5 text-sm font-medium text-text-primary">
                     {user?.name}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-4 py-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                  <HiEnvelope className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-tertiary">
+                  <HiEnvelope className="h-5 w-5 text-text-tertiary" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Correo electronico</p>
-                  <p className="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">
+                  <p className="text-xs text-text-tertiary">Correo electronico</p>
+                  <p className="mt-0.5 text-sm font-medium text-text-primary">
                     {user?.email}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-4 py-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                  <HiCurrencyDollar className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-tertiary">
+                  <HiCurrencyDollar className="h-5 w-5 text-text-tertiary" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Moneda principal</p>
-                  <p className="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">
+                  <p className="text-xs text-text-tertiary">Moneda principal</p>
+                  <p className="mt-0.5 text-sm font-medium text-text-primary">
                     {CURRENCY_OPTIONS.find((c) => c.value === user?.mainCurrency)?.label ?? user?.mainCurrency}
                   </p>
                 </div>
@@ -207,7 +220,7 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

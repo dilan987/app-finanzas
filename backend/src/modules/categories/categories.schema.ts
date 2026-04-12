@@ -14,7 +14,7 @@ export const createCategorySchema = z.object({
     .regex(hexColorRegex, 'Color must be a valid hex color (e.g. #FF5733)')
     .default('#6B7280'),
   type: z.enum(['INCOME', 'EXPENSE'], {
-    errorMap: () => ({ message: 'Type must be INCOME or EXPENSE' }),
+    message: 'Type must be INCOME or EXPENSE',
   }),
 });
 
@@ -32,7 +32,7 @@ export const updateCategorySchema = z.object({
     .optional(),
   type: z
     .enum(['INCOME', 'EXPENSE'], {
-      errorMap: () => ({ message: 'Type must be INCOME or EXPENSE' }),
+      message: 'Type must be INCOME or EXPENSE',
     })
     .optional(),
 });
@@ -40,7 +40,7 @@ export const updateCategorySchema = z.object({
 export const getCategoriesQuerySchema = z.object({
   type: z
     .enum(['INCOME', 'EXPENSE'], {
-      errorMap: () => ({ message: 'Type must be INCOME or EXPENSE' }),
+      message: 'Type must be INCOME or EXPENSE',
     })
     .optional(),
 });

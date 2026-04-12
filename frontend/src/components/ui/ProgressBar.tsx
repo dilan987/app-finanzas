@@ -1,11 +1,16 @@
+import { useState, useEffect } from 'react';
+
 interface ProgressBarProps {
   value: number;
   showLabel?: boolean;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  animated?: boolean;
+  thresholdColors?: boolean;
 }
 
-function getColorClass(value: number): string {
+function getColorClass(value: number, threshold: boolean): string {
+  if (!threshold) return 'bg-primary-500';
   if (value > 90) return 'bg-red-500 dark:bg-red-400';
   if (value > 70) return 'bg-amber-500 dark:bg-amber-400';
   return 'bg-emerald-500 dark:bg-emerald-400';
@@ -22,24 +27,48 @@ export default function ProgressBar({
   showLabel = true,
   className = '',
   size = 'md',
+  animated = true,
+  thresholdColors = true,
 }: ProgressBarProps) {
   const clamped = Math.min(100, Math.max(0, value));
+  const [displayWidth, setDisplayWidth] = useState(animated ? 0 : clamped);
+
+  useEffect(() => {
+    if (!animated) {
+      setDisplayWidth(clamped);
+      return;
+    }
+
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReduced) {
+      setDisplayWidth(clamped);
+      return;
+    }
+
+    const timer = requestAnimationFrame(() => {
+      setDisplayWidth(clamped);
+    });
+    return () => cancelAnimationFrame(timer);
+  }, [clamped, animated]);
 
   return (
     <div className={`w-full ${className}`}>
       {showLabel && (
-        <div className="mb-1 flex items-center justify-end">
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+        <div className="mb-1.5 flex items-center justify-end">
+          <span className="text-xs font-semibold text-text-secondary">
             {Math.round(clamped)}%
           </span>
         </div>
       )}
       <div
-        className={`w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 ${sizeClasses[size]}`}
+        className={`w-full overflow-hidden rounded-full bg-surface-tertiary ${sizeClasses[size]}`}
       >
         <div
-          className={`${sizeClasses[size]} rounded-full transition-all duration-500 ease-out ${getColorClass(clamped)}`}
-          style={{ width: `${clamped}%` }}
+          className={`${sizeClasses[size]} rounded-full ${getColorClass(clamped, thresholdColors)} ${animated ? 'transition-all duration-[600ms] ease-out' : ''}`}
+          style={{ width: `${displayWidth}%` }}
           role="progressbar"
           aria-valuenow={clamped}
           aria-valuemin={0}

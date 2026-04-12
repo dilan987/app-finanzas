@@ -6,7 +6,6 @@ import { useUiStore } from './store/uiStore';
 export default function App() {
   const theme = useUiStore((s) => s.theme);
 
-  // Ensure the theme class is applied on initial render
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') {
@@ -24,10 +23,15 @@ export default function App() {
         toastOptions={{
           duration: 4000,
           style: {
-            background: theme === 'dark' ? '#1f2937' : '#ffffff',
-            color: theme === 'dark' ? '#f9fafb' : '#111827',
-            borderRadius: '0.5rem',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            background: theme === 'dark' ? '#1e293b' : '#ffffff',
+            color: theme === 'dark' ? '#f8fafc' : '#0f172a',
+            borderRadius: '0.75rem',
+            border: `1px solid ${theme === 'dark' ? '#334155' : '#e2e8f0'}`,
+            boxShadow: theme === 'dark'
+              ? '0 4px 12px rgba(0, 0, 0, 0.4)'
+              : '0 4px 12px rgba(0, 0, 0, 0.08)',
+            fontSize: '0.875rem',
+            fontWeight: '500',
           },
           success: {
             iconTheme: {

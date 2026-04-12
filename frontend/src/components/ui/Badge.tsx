@@ -1,22 +1,26 @@
 import { type ReactNode } from 'react';
 
 interface BadgeProps {
-  variant?: 'income' | 'expense' | 'info' | 'warning' | 'critical';
+  variant?: 'income' | 'expense' | 'info' | 'warning' | 'critical' | 'invest' | 'neutral';
   children: ReactNode;
   className?: string;
 }
 
 const variantClasses: Record<NonNullable<BadgeProps['variant']>, string> = {
   income:
-    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
+    'bg-income-bg text-income dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light',
   expense:
-    'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
+    'bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light',
   info:
-    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
+    'bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-400',
   warning:
-    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
+    'bg-warning-bg text-warning-dark dark:bg-[rgba(245,158,11,0.12)] dark:text-warning-light',
   critical:
-    'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+    'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+  invest:
+    'bg-invest-bg text-invest dark:bg-[rgba(139,92,246,0.12)] dark:text-invest-light',
+  neutral:
+    'bg-surface-tertiary text-text-secondary',
 };
 
 export default function Badge({ variant = 'info', children, className = '' }: BadgeProps) {

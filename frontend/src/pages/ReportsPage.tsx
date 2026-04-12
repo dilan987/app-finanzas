@@ -7,7 +7,6 @@ import {
   HiCalendar,
 } from 'react-icons/hi2';
 import Button from '../components/ui/Button';
-import Card from '../components/ui/Card';
 import Select from '../components/ui/Select';
 import DatePicker from '../components/ui/DatePicker';
 import { reportsApi } from '../api/reports.api';
@@ -99,23 +98,28 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-        Reportes y Exportación
-      </h1>
+      <div>
+        <h1 className="text-2xl font-bold text-text-primary">
+          Reportes y Exportacion
+        </h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          Genera reportes y exporta tus datos financieros
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* PDF Report */}
-        <Card padding="lg">
+        <div className="rounded-xl border border-border-primary bg-surface-card p-6 shadow-card">
           <div className="space-y-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light">
                 <HiDocumentText className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h2 className="text-lg font-semibold text-text-primary">
                   Reporte PDF Mensual
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-text-secondary">
                   Genera un resumen completo de tus finanzas del mes
                 </p>
               </div>
@@ -129,18 +133,18 @@ export default function ReportsPage() {
                 onChange={(e) => setPdfMonth(e.target.value)}
               />
               <Select
-                label="Año"
+                label="Ano"
                 options={getYearOptions()}
                 value={pdfYear}
                 onChange={(e) => setPdfYear(e.target.value)}
               />
             </div>
 
-            <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-700/50">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <HiCalendar className="h-4 w-4" />
+            <div className="rounded-lg bg-surface-tertiary p-4">
+              <div className="flex items-center gap-2 text-sm text-text-secondary">
+                <HiCalendar className="h-4 w-4 shrink-0" />
                 <span>
-                  El reporte incluirá: ingresos, gastos, balance, desglose por categoría y gráficos del período seleccionado.
+                  El reporte incluira: ingresos, gastos, balance, desglose por categoria y graficos del periodo seleccionado.
                 </span>
               </div>
             </div>
@@ -155,20 +159,20 @@ export default function ReportsPage() {
               Descargar PDF
             </Button>
           </div>
-        </Card>
+        </div>
 
         {/* CSV Export */}
-        <Card padding="lg">
+        <div className="rounded-xl border border-border-primary bg-surface-card p-6 shadow-card">
           <div className="space-y-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-income-bg text-income dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light">
                 <HiTableCells className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h2 className="text-lg font-semibold text-text-primary">
                   Exportar Transacciones (CSV)
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-text-secondary">
                   Descarga tus transacciones en formato CSV
                 </p>
               </div>
@@ -186,7 +190,7 @@ export default function ReportsPage() {
             />
 
             <Select
-              label="Categoría"
+              label="Categoria"
               options={[
                 { value: '', label: 'Todas' },
                 ...categories.map((c) => ({ value: c.id, label: c.name as string })),
@@ -196,7 +200,7 @@ export default function ReportsPage() {
             />
 
             <Select
-              label="Método de pago"
+              label="Metodo de pago"
               options={[
                 { value: '', label: 'Todos' },
                 ...PAYMENT_METHODS,
@@ -229,7 +233,7 @@ export default function ReportsPage() {
               Descargar CSV
             </Button>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

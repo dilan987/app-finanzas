@@ -7,9 +7,7 @@ export const createInvestmentSchema = z.object({
     .max(200, 'Name must be at most 200 characters')
     .trim(),
   type: z.enum(['STOCKS', 'CDT', 'CRYPTO', 'FUND', 'FOREX', 'OTHER'], {
-    errorMap: () => ({
-      message: 'Type must be STOCKS, CDT, CRYPTO, FUND, FOREX, or OTHER',
-    }),
+    message: 'Type must be STOCKS, CDT, CRYPTO, FUND, FOREX, or OTHER',
   }),
   amountInvested: z
     .number()
@@ -46,9 +44,7 @@ export const updateInvestmentSchema = z.object({
     .optional(),
   type: z
     .enum(['STOCKS', 'CDT', 'CRYPTO', 'FUND', 'FOREX', 'OTHER'], {
-      errorMap: () => ({
-        message: 'Type must be STOCKS, CDT, CRYPTO, FUND, FOREX, or OTHER',
-      }),
+      message: 'Type must be STOCKS, CDT, CRYPTO, FUND, FOREX, or OTHER',
     })
     .optional(),
   amountInvested: z
@@ -84,15 +80,13 @@ export const updateInvestmentSchema = z.object({
 export const getInvestmentsQuerySchema = z.object({
   isActive: z
     .enum(['true', 'false'], {
-      errorMap: () => ({ message: 'isActive must be true or false' }),
+      message: 'isActive must be true or false',
     })
     .transform((val) => val === 'true')
     .optional(),
   type: z
     .enum(['STOCKS', 'CDT', 'CRYPTO', 'FUND', 'FOREX', 'OTHER'], {
-      errorMap: () => ({
-        message: 'Type must be STOCKS, CDT, CRYPTO, FUND, FOREX, or OTHER',
-      }),
+      message: 'Type must be STOCKS, CDT, CRYPTO, FUND, FOREX, or OTHER',
     })
     .optional(),
   page: z.coerce.number().int().min(1).default(1),

@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import ChartTooltip from './ChartTooltip';
 
 interface BarChartDataItem {
   month: string;
@@ -27,35 +28,57 @@ export default function IncomeExpenseBarChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="var(--border-primary)"
+          strokeOpacity={0.5}
+          vertical={false}
+        />
+
         <XAxis
           dataKey="month"
-          tick={{ fontSize: 12 }}
-          className="text-gray-600 dark:text-gray-400"
+          tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
+          axisLine={{ stroke: 'var(--border-primary)' }}
+          tickLine={{ stroke: 'var(--border-primary)' }}
         />
+
         <YAxis
-          tick={{ fontSize: 12 }}
-          className="text-gray-600 dark:text-gray-400"
+          tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
+          axisLine={{ stroke: 'var(--border-primary)' }}
+          tickLine={{ stroke: 'var(--border-primary)' }}
           tickFormatter={(v: number) =>
-            v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1_000 ? `${(v / 1_000).toFixed(0)}K` : String(v)
+            v >= 1_000_000
+              ? `${(v / 1_000_000).toFixed(1)}M`
+              : v >= 1_000
+                ? `${(v / 1_000).toFixed(0)}K`
+                : String(v)
           }
         />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: 'var(--tooltip-bg, #fff)',
-            borderColor: 'var(--tooltip-border, #e5e7eb)',
-            borderRadius: '8px',
-            fontSize: '13px',
-          }}
-          formatter={(value: number) => [
-            new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value),
-          ]}
-        />
+
+        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--border-primary)', fillOpacity: 0.3 }} />
+
         <Legend
-          wrapperStyle={{ fontSize: '13px' }}
+          wrapperStyle={{ fontSize: '13px', color: 'var(--text-secondary)' }}
         />
-        <Bar dataKey="income" name="Ingresos" fill="#059669" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="expense" name="Gastos" fill="#dc2626" radius={[4, 4, 0, 0]} />
+
+        <Bar
+          dataKey="income"
+          name="Ingresos"
+          fill="#22c55e"
+          radius={[6, 6, 0, 0]}
+          animationDuration={500}
+          animationEasing="ease-out"
+          maxBarSize={48}
+        />
+        <Bar
+          dataKey="expense"
+          name="Gastos"
+          fill="#ef4444"
+          radius={[6, 6, 0, 0]}
+          animationDuration={500}
+          animationEasing="ease-out"
+          maxBarSize={48}
+        />
       </BarChart>
     </ResponsiveContainer>
   );

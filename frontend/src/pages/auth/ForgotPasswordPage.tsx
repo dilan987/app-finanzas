@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-xs dark:border-gray-700 dark:bg-gray-800">
           {sent ? (
             /* Success State */
             <div className="text-center">

@@ -6,6 +6,7 @@ type Theme = 'light' | 'dark';
 interface UiState {
   theme: Theme;
   sidebarOpen: boolean;
+  sidebarCollapsed: boolean;
   currentMonth: number;
   currentYear: number;
 
@@ -13,6 +14,8 @@ interface UiState {
   setTheme: (theme: Theme) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
+  toggleSidebarCollapsed: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   setMonth: (month: number) => void;
   setYear: (year: number) => void;
 }
@@ -34,6 +37,7 @@ export const useUiStore = create<UiState>()(
     (set, get) => ({
       theme: 'light',
       sidebarOpen: true,
+      sidebarCollapsed: false,
       currentMonth: now.getMonth() + 1,
       currentYear: now.getFullYear(),
 
@@ -56,6 +60,14 @@ export const useUiStore = create<UiState>()(
         set({ sidebarOpen: open });
       },
 
+      toggleSidebarCollapsed: () => {
+        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed }));
+      },
+
+      setSidebarCollapsed: (collapsed) => {
+        set({ sidebarCollapsed: collapsed });
+      },
+
       setMonth: (month) => {
         set({ currentMonth: month });
       },
@@ -67,7 +79,10 @@ export const useUiStore = create<UiState>()(
     {
       name: 'ui-storage',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ theme: state.theme }),
+      partialize: (state) => ({
+        theme: state.theme,
+        sidebarCollapsed: state.sidebarCollapsed,
+      }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyThemeToDocument(state.theme);

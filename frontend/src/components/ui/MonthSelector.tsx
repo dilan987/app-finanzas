@@ -2,18 +2,8 @@ import { HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
 import { useUiStore } from '../../store/uiStore';
 
 const MONTH_NAMES = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Septiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre',
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
 interface MonthSelectorProps {
@@ -42,20 +32,20 @@ export default function MonthSelector({ className = '' }: MonthSelectorProps) {
   };
 
   return (
-    <div className={`inline-flex items-center gap-2 ${className}`}>
+    <div className={`inline-flex items-center gap-1 ${className}`}>
       <button
         onClick={goToPrevious}
-        className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+        className="rounded-lg p-2 text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
         aria-label="Mes anterior"
       >
         <HiChevronLeft className="h-5 w-5" />
       </button>
-      <span className="min-w-[160px] text-center text-sm font-medium text-gray-900 dark:text-gray-100">
+      <span className="min-w-[160px] text-center text-sm font-semibold text-text-primary">
         {MONTH_NAMES[currentMonth - 1]} {currentYear}
       </span>
       <button
         onClick={goToNext}
-        className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+        className="rounded-lg p-2 text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-primary"
         aria-label="Mes siguiente"
       >
         <HiChevronRight className="h-5 w-5" />

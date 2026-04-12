@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { HiEnvelope, HiLockClosed, HiUser, HiCheck, HiXMark } from 'react-icons/hi2';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
+import AuthLayout from '../components/layout/AuthLayout';
 import { useAuth } from '../hooks/useAuth';
 
 interface FormErrors {
@@ -81,116 +82,96 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8 dark:bg-gray-900">
-      <div className="w-full max-w-md">
-        {/* Logo / App Name */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 dark:bg-blue-500">
-            <span className="text-2xl font-bold text-white">F</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Finanzas App
-          </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Crea tu cuenta y toma el control de tus finanzas
-          </p>
-        </div>
+    <AuthLayout
+      title="Crear Cuenta"
+      subtitle="Registrate para comenzar a gestionar tus finanzas"
+    >
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <Input
+          label="Nombre"
+          placeholder="Juan Perez"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          error={errors.name}
+          icon={<HiUser className="h-4 w-4" />}
+          autoComplete="name"
+          disabled={loading}
+        />
 
-        {/* Card */}
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <h2 className="mb-6 text-center text-lg font-semibold text-gray-900 dark:text-white">
-            Crear Cuenta
-          </h2>
+        <Input
+          label="Correo electronico"
+          type="email"
+          placeholder="tu@email.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          error={errors.email}
+          icon={<HiEnvelope className="h-4 w-4" />}
+          autoComplete="email"
+          disabled={loading}
+        />
 
-          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-            <Input
-              label="Nombre"
-              placeholder="Juan Perez"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              error={errors.name}
-              icon={<HiUser className="h-4 w-4" />}
-              autoComplete="name"
-              disabled={loading}
-            />
+        <Input
+          label="Contrasena"
+          type="password"
+          placeholder="Crea una contrasena segura"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          error={errors.password}
+          icon={<HiLockClosed className="h-4 w-4" />}
+          autoComplete="new-password"
+          disabled={loading}
+        />
 
-            <Input
-              label="Correo electronico"
-              type="email"
-              placeholder="tu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={errors.email}
-              icon={<HiEnvelope className="h-4 w-4" />}
-              autoComplete="email"
-              disabled={loading}
-            />
-
-            <Input
-              label="Contrasena"
-              type="password"
-              placeholder="Crea una contrasena segura"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              error={errors.password}
-              icon={<HiLockClosed className="h-4 w-4" />}
-              autoComplete="new-password"
-              disabled={loading}
-            />
-
-            {/* Password requirements */}
-            {password.length > 0 && (
-              <div className="space-y-1.5 rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50">
-                {passwordChecks.map((rule) => (
-                  <div key={rule.label} className="flex items-center gap-2 text-xs">
-                    {rule.passed ? (
-                      <HiCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                    ) : (
-                      <HiXMark className="h-3.5 w-3.5 shrink-0 text-gray-400 dark:text-gray-500" />
-                    )}
-                    <span
-                      className={
-                        rule.passed
-                          ? 'text-emerald-700 dark:text-emerald-400'
-                          : 'text-gray-500 dark:text-gray-400'
-                      }
-                    >
-                      {rule.label}
-                    </span>
-                  </div>
-                ))}
+        {/* Password requirements */}
+        {password.length > 0 && (
+          <div className="space-y-1.5 rounded-lg bg-surface-secondary p-3">
+            {passwordChecks.map((rule) => (
+              <div key={rule.label} className="flex items-center gap-2 text-xs">
+                {rule.passed ? (
+                  <HiCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                ) : (
+                  <HiXMark className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
+                )}
+                <span
+                  className={
+                    rule.passed
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-text-secondary'
+                  }
+                >
+                  {rule.label}
+                </span>
               </div>
-            )}
+            ))}
+          </div>
+        )}
 
-            <Input
-              label="Confirmar contrasena"
-              type="password"
-              placeholder="Repite tu contrasena"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              error={errors.confirmPassword}
-              icon={<HiLockClosed className="h-4 w-4" />}
-              autoComplete="new-password"
-              disabled={loading}
-            />
+        <Input
+          label="Confirmar contrasena"
+          type="password"
+          placeholder="Repite tu contrasena"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          error={errors.confirmPassword}
+          icon={<HiLockClosed className="h-4 w-4" />}
+          autoComplete="new-password"
+          disabled={loading}
+        />
 
-            <Button type="submit" fullWidth loading={loading} size="lg">
-              Crear Cuenta
-            </Button>
-          </form>
-        </div>
+        <Button type="submit" fullWidth loading={loading} size="lg">
+          Crear Cuenta
+        </Button>
+      </form>
 
-        {/* Link to login */}
-        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          Ya tienes una cuenta?{' '}
-          <Link
-            to="/login"
-            className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            Iniciar sesion
-          </Link>
-        </p>
-      </div>
-    </div>
+      <p className="mt-6 text-center text-sm text-text-secondary">
+        Ya tienes una cuenta?{' '}
+        <Link
+          to="/login"
+          className="font-medium text-primary-600 hover:text-primary-700"
+        >
+          Iniciar sesion
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }

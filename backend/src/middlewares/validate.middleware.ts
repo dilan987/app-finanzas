@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
+import { ZodType, ZodError } from 'zod';
 import { ValidationError } from '../utils/errors';
 
 interface ValidationSchemas {
-  body?: ZodSchema;
-  query?: ZodSchema;
-  params?: ZodSchema;
+  body?: ZodType;
+  query?: ZodType;
+  params?: ZodType;
 }
 
 export function validate(schemas: ValidationSchemas) {
@@ -26,7 +26,12 @@ export function validate(schemas: ValidationSchemas) {
       if (!result.success) {
         mergeZodErrors(result.error, errors, 'query');
       } else {
-        req.query = result.data as Record<string, string>;
+        // Express 5: req.query is a getter-only property, use defineProperty to override
+        Object.defineProperty(req, 'query', {
+          value: result.data,
+          writable: true,
+          configurable: true,
+        });
       }
     }
 

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  HiBanknotes,
   HiArrowTrendingUp,
   HiArrowTrendingDown,
   HiChartPie,
@@ -11,11 +10,11 @@ import toast from 'react-hot-toast';
 
 import StatCard from '../components/ui/StatCard';
 import Card from '../components/ui/Card';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import Badge from '../components/ui/Badge';
-import IncomeExpenseBarChart from '../components/charts/IncomeExpenseBarChart';
-import CategoryPieChart from '../components/charts/CategoryPieChart';
+import AnimatedNumber from '../components/ui/AnimatedNumber';
+import MonthSelector from '../components/ui/MonthSelector';
 import TrendLineChart from '../components/charts/TrendLineChart';
 import BudgetProgressList from '../components/charts/BudgetProgressList';
 
@@ -23,8 +22,9 @@ import { analyticsApi } from '../api/analytics.api';
 import { transactionsApi } from '../api/transactions.api';
 import { budgetsApi } from '../api/budgets.api';
 import { useUiStore } from '../store/uiStore';
+import { useAuthStore } from '../store/authStore';
 import { formatCurrency } from '../utils/formatCurrency';
-import { formatShortDate, getShortMonthName, formatMonthYear } from '../utils/formatDate';
+import { formatShortDate, getShortMonthName } from '../utils/formatDate';
 import { PAYMENT_METHODS } from '../utils/constants';
 import type {
   FinancialSummary,
@@ -34,11 +34,19 @@ import type {
   Transaction,
 } from '../types';
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Buenos dias';
+  if (hour < 18) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
 export default function DashboardPage() {
   const { currentMonth, currentYear } = useUiStore();
+  const user = useAuthStore((s) => s.user);
 
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
-  const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdown[]>([]);
+  const [, setCategoryBreakdown] = useState<CategoryBreakdown[]>([]);
   const [trends, setTrends] = useState<MonthlyTrend[]>([]);
   const [budgets, setBudgets] = useState<BudgetSummary[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
@@ -104,18 +112,6 @@ export default function DashboardPage() {
   }, [fetchData]);
 
   // Derived data for charts
-  const barChartData = trends.map((t) => ({
-    month: getShortMonthName(t.month),
-    income: t.income,
-    expense: t.expenses,
-  }));
-
-  const pieChartData = categoryBreakdown.map((c) => ({
-    name: c.categoryName,
-    value: c.total,
-    color: c.categoryColor,
-  }));
-
   const trendLineData = trends.map((t) => ({
     month: getShortMonthName(t.month),
     income: t.income,
@@ -139,93 +135,116 @@ export default function DashboardPage() {
       ? ((summary.totalIncome - summary.totalExpenses) / summary.totalIncome) * 100
       : 0;
 
-  if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Spinner size="xl" />
-      </div>
-    );
-  }
-
   function getPaymentMethodLabel(value: string): string {
     return PAYMENT_METHODS.find((pm) => pm.value === value)?.label ?? value;
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Resumen financiero de {formatMonthYear(currentMonth, currentYear)}
-        </p>
+      {/* ── Header: Greeting + Month Selector ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">
+            {getGreeting()}{user?.name ? `, ${user.name}` : ''}
+          </h1>
+          <p className="mt-1 text-sm text-text-secondary">
+            Aqui esta tu resumen financiero del mes
+          </p>
+        </div>
+        <MonthSelector />
       </div>
 
-      {/* Stat Cards Row */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={<HiBanknotes className="h-5 w-5" />}
-          iconBgClass="bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400"
-          label="Balance del mes"
-          value={formatCurrency(summary?.balance ?? 0)}
-          trend={
-            summary && summary.balance !== 0
-              ? { value: savingsRate, isPositive: summary.balance >= 0 }
-              : undefined
-          }
-        />
-        <StatCard
-          icon={<HiArrowTrendingUp className="h-5 w-5" />}
-          iconBgClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400"
-          label="Ingresos"
-          value={formatCurrency(summary?.totalIncome ?? 0)}
-        />
-        <StatCard
-          icon={<HiArrowTrendingDown className="h-5 w-5" />}
-          iconBgClass="bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400"
-          label="Gastos"
-          value={formatCurrency(summary?.totalExpenses ?? 0)}
-        />
-        <StatCard
-          icon={<HiChartPie className="h-5 w-5" />}
-          iconBgClass="bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400"
-          label="Tasa de Ahorro"
-          value={`${savingsRate.toFixed(1)}%`}
-          trend={
-            savingsRate !== 0
-              ? { value: savingsRate, isPositive: savingsRate > 0 }
-              : undefined
-          }
-        />
-      </div>
-
-      {/* Charts Row 1: Bar Chart + Pie Chart */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        <Card title="Ingresos vs Gastos" className="lg:col-span-3">
-          {barChartData.length > 0 ? (
-            <IncomeExpenseBarChart data={barChartData} height={320} />
-          ) : (
-            <EmptyState
-              title="Sin datos"
-              description="No hay datos de transacciones para mostrar el grafico."
+      {/* ── Large Balance Card with AnimatedNumber ── */}
+      {loading ? (
+        <Skeleton variant="card" height={140} />
+      ) : (
+        <div className="rounded-xl border border-border-primary bg-surface-card p-6 shadow-card">
+          <p className="text-sm font-medium text-text-secondary">Balance total del mes</p>
+          <div className="mt-2 flex items-baseline gap-3">
+            <AnimatedNumber
+              value={summary?.balance ?? 0}
+              formatFn={(n) => formatCurrency(n)}
+              className={`text-4xl font-bold tracking-tight ${
+                (summary?.balance ?? 0) >= 0
+                  ? 'text-income dark:text-income-light'
+                  : 'text-expense dark:text-expense-light'
+              }`}
             />
-          )}
-        </Card>
+            {savingsRate !== 0 && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  savingsRate > 0
+                    ? 'bg-income-bg text-income dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light'
+                    : 'bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light'
+                }`}
+              >
+                {savingsRate > 0 ? (
+                  <HiArrowTrendingUp className="h-3.5 w-3.5" />
+                ) : (
+                  <HiArrowTrendingDown className="h-3.5 w-3.5" />
+                )}
+                {Math.abs(savingsRate).toFixed(1)}% ahorro
+              </span>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-text-tertiary">
+            Ingresos menos gastos de este periodo
+          </p>
+        </div>
+      )}
 
-        <Card title="Gastos por Categoria" className="lg:col-span-2">
-          {pieChartData.length > 0 ? (
-            <CategoryPieChart data={pieChartData} height={320} />
-          ) : (
-            <EmptyState
-              title="Sin gastos"
-              description="No hay gastos registrados este mes."
-            />
-          )}
-        </Card>
-      </div>
+      {/* ── Stat Cards Row ── */}
+      {loading ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} variant="card" height={120} />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <StatCard
+            icon={<HiArrowTrendingUp className="h-5 w-5" />}
+            iconBgClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400"
+            label="Ingresos"
+            value={formatCurrency(summary?.totalIncome ?? 0)}
+            trend={
+              summary?.incomeChange !== undefined && summary.incomeChange !== 0
+                ? { value: summary.incomeChange, isPositive: summary.incomeChange > 0 }
+                : undefined
+            }
+            index={0}
+          />
+          <StatCard
+            icon={<HiArrowTrendingDown className="h-5 w-5" />}
+            iconBgClass="bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400"
+            label="Gastos"
+            value={formatCurrency(summary?.totalExpenses ?? 0)}
+            trend={
+              summary?.expenseChange !== undefined && summary.expenseChange !== 0
+                ? { value: summary.expenseChange, isPositive: summary.expenseChange < 0 }
+                : undefined
+            }
+            index={1}
+          />
+          <StatCard
+            icon={<HiChartPie className="h-5 w-5" />}
+            iconBgClass="bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400"
+            label="Tasa de Ahorro"
+            value={`${savingsRate.toFixed(1)}%`}
+            trend={
+              savingsRate !== 0
+                ? { value: savingsRate, isPositive: savingsRate > 0 }
+                : undefined
+            }
+            index={2}
+          />
+        </div>
+      )}
 
-      {/* Charts Row 2: Trend Line + Budget Progress */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* ── Trend Line Chart (area chart with gradient) ── */}
+      {loading ? (
+        <Skeleton variant="chart" height={400} />
+      ) : (
         <Card title="Tendencia (6 meses)">
           {trendLineData.length > 0 ? (
             <TrendLineChart data={trendLineData} height={320} />
@@ -236,100 +255,105 @@ export default function DashboardPage() {
             />
           )}
         </Card>
+      )}
 
-        <Card title="Presupuestos Criticos">
-          <BudgetProgressList budgets={topBudgets} />
-        </Card>
-      </div>
-
-      {/* Recent Transactions */}
-      <Card
-        title="Ultimas Transacciones"
-        action={
-          <Link
-            to="/transactions"
-            className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            Ver todas
-            <HiArrowRight className="h-4 w-4" />
-          </Link>
-        }
-      >
-        {recentTransactions.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="pb-3 text-left font-medium text-gray-500 dark:text-gray-400">
-                    Fecha
-                  </th>
-                  <th className="pb-3 text-left font-medium text-gray-500 dark:text-gray-400">
-                    Categoria
-                  </th>
-                  <th className="pb-3 text-left font-medium text-gray-500 dark:text-gray-400">
-                    Descripcion
-                  </th>
-                  <th className="pb-3 text-right font-medium text-gray-500 dark:text-gray-400">
-                    Monto
-                  </th>
-                  <th className="hidden pb-3 text-left font-medium text-gray-500 dark:text-gray-400 sm:table-cell">
-                    Metodo
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                {recentTransactions.map((tx) => (
-                  <tr key={tx.id} className="group">
-                    <td className="py-3 text-gray-600 dark:text-gray-400">
-                      {formatShortDate(tx.date)}
-                    </td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        {tx.category && (
+      {/* ── Recent Transactions + Budget Progress ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        {/* Recent Transactions */}
+        <div className="lg:col-span-3">
+          {loading ? (
+            <Skeleton variant="chart" height={400} />
+          ) : (
+            <Card
+              title="Ultimas Transacciones"
+              action={
+                <Link
+                  to="/transactions"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                >
+                  Ver todas
+                  <HiArrowRight className="h-4 w-4" />
+                </Link>
+              }
+            >
+              {recentTransactions.length > 0 ? (
+                <div className="space-y-1">
+                  {recentTransactions.map((tx) => (
+                    <div
+                      key={tx.id}
+                      className="flex items-center justify-between rounded-lg px-3 py-3 transition-colors hover:bg-surface-tertiary"
+                    >
+                      {/* Left side: category dot + info */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                          style={{
+                            backgroundColor: tx.category?.color
+                              ? `${tx.category.color}20`
+                              : 'rgba(107,114,128,0.1)',
+                          }}
+                        >
                           <span
-                            className="inline-block h-2.5 w-2.5 rounded-full"
-                            style={{ backgroundColor: tx.category.color }}
+                            className="inline-block h-3 w-3 rounded-full"
+                            style={{ backgroundColor: tx.category?.color ?? '#6B7280' }}
                           />
-                        )}
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {tx.category?.name ?? 'Sin categoria'}
-                        </span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-text-primary">
+                            {tx.description || tx.category?.name || 'Sin descripcion'}
+                          </p>
+                          <p className="text-xs text-text-tertiary">
+                            {formatShortDate(tx.date)}
+                            <span className="mx-1.5">·</span>
+                            {tx.category?.name ?? 'Sin categoria'}
+                          </p>
+                        </div>
                       </div>
-                    </td>
-                    <td className="max-w-[200px] truncate py-3 text-gray-700 dark:text-gray-300">
-                      {tx.description}
-                    </td>
-                    <td className="py-3 text-right">
-                      <span
-                        className={`font-medium ${
-                          tx.type === 'INCOME'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-red-600 dark:text-red-400'
-                        }`}
-                      >
-                        {tx.type === 'INCOME' ? '+' : '-'}
-                        {formatCurrency(tx.amount)}
-                      </span>
-                    </td>
-                    <td className="hidden py-3 text-gray-500 dark:text-gray-400 sm:table-cell">
-                      <Badge variant="info">{getPaymentMethodLabel(tx.paymentMethod)}</Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState
-            title="Sin transacciones"
-            description="No hay transacciones registradas este mes."
-            actionLabel="Agregar transaccion"
-            onAction={() => {
-              window.location.href = '/transactions';
-            }}
-          />
-        )}
-      </Card>
+
+                      {/* Right side: amount + badge */}
+                      <div className="flex items-center gap-3 shrink-0 pl-3">
+                        <span
+                          className={`text-sm font-semibold ${
+                            tx.type === 'INCOME'
+                              ? 'text-income dark:text-income-light'
+                              : 'text-expense dark:text-expense-light'
+                          }`}
+                        >
+                          {tx.type === 'INCOME' ? '+' : '-'}
+                          {formatCurrency(tx.amount)}
+                        </span>
+                        <Badge variant="info" className="hidden sm:inline-flex">
+                          {getPaymentMethodLabel(tx.paymentMethod)}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  title="Sin transacciones"
+                  description="No hay transacciones registradas este mes."
+                  actionLabel="Agregar transaccion"
+                  onAction={() => {
+                    window.location.href = '/transactions';
+                  }}
+                />
+              )}
+            </Card>
+          )}
+        </div>
+
+        {/* Budget Progress */}
+        <div className="lg:col-span-2">
+          {loading ? (
+            <Skeleton variant="chart" height={400} />
+          ) : (
+            <Card title="Presupuestos">
+              <BudgetProgressList budgets={topBudgets} />
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

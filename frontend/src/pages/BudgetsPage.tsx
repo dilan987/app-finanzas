@@ -14,12 +14,12 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Modal from '../components/ui/Modal';
-import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Spinner from '../components/ui/Spinner';
 import EmptyState from '../components/ui/EmptyState';
 import ProgressBar from '../components/ui/ProgressBar';
 import MonthSelector from '../components/ui/MonthSelector';
+import StatCard from '../components/ui/StatCard';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { useUiStore } from '../store/uiStore';
 import { budgetsApi } from '../api/budgets.api';
@@ -236,69 +236,82 @@ export default function BudgetsPage() {
   const unplanned = projection?.unplannedExpenses ?? 0;
   const overallPct = projection?.overallPercentage ?? 0;
 
-  const renderTable = (
-    tableItems: BudgetItem[],
+  const renderBudgetSection = (
+    sectionItems: BudgetItem[],
     type: 'INCOME' | 'EXPENSE',
     title: string,
     total: number,
     actualTotal: number,
   ) => {
-    if (tableItems.length === 0) return null;
+    if (sectionItems.length === 0) return null;
     const diff = total - actualTotal;
     return (
-      <Card title={`${title} (${tableItems.length})`}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="pb-3 text-left font-medium text-gray-500 dark:text-gray-400">Concepto</th>
-                <th className="pb-3 text-right font-medium text-gray-500 dark:text-gray-400">Proyectado</th>
-                <th className="pb-3 text-right font-medium text-gray-500 dark:text-gray-400">Real</th>
-                <th className="pb-3 text-right font-medium text-gray-500 dark:text-gray-400">Diferencia</th>
-                <th className="pb-3 text-center font-medium text-gray-500 dark:text-gray-400">Estado</th>
-                <th className="pb-3 text-right font-medium text-gray-500 dark:text-gray-400">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-              {tableItems.map((item) => {
-                const itemDiff = item.budgetAmount - item.actualAmount;
-                const isOver = item.actualAmount > item.budgetAmount;
-                return (
-                  <tr key={item.id} className="group hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                    <td className="py-3">
-                      <div className="flex items-center gap-3">
-                        {item.category ? (
-                          <span
-                            className="inline-block h-3 w-3 rounded-full"
-                            style={{ backgroundColor: item.category.color }}
-                          />
-                        ) : (
-                          <span className="inline-block h-3 w-3 rounded-full bg-gray-400" />
-                        )}
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">{item.name}</p>
-                          {item.category && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{item.category.name}</p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 text-right font-medium text-gray-700 dark:text-gray-300">
-                      {formatCurrency(item.budgetAmount)}
-                    </td>
-                    <td className="py-3 text-right font-medium text-gray-700 dark:text-gray-300">
-                      {item.categoryId ? formatCurrency(item.actualAmount) : (
-                        <span className="text-gray-400">&mdash;</span>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-text-primary">{title} ({sectionItems.length})</h2>
+          <div className="flex items-center gap-3 text-sm">
+            <span className="text-text-secondary">Proyectado: <span className="font-semibold text-text-primary">{formatCurrency(total)}</span></span>
+            <span className="text-text-secondary">Real: <span className="font-semibold text-text-primary">{formatCurrency(actualTotal)}</span></span>
+            <span className={`font-semibold ${diff >= 0 ? 'text-income' : 'text-expense'}`}>
+              {diff >= 0 ? '+' : '-'}{formatCurrency(Math.abs(diff))}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {sectionItems.map((item) => {
+            const itemDiff = item.budgetAmount - item.actualAmount;
+            const isOver = item.actualAmount > item.budgetAmount;
+            return (
+              <div
+                key={item.id}
+                className="group rounded-xl border border-border-primary bg-surface-card p-4 shadow-card transition-all hover:shadow-card-hover"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {item.category ? (
+                      <span
+                        className="inline-block h-3 w-3 shrink-0 rounded-full"
+                        style={{ backgroundColor: item.category.color }}
+                      />
+                    ) : (
+                      <span className="inline-block h-3 w-3 shrink-0 rounded-full bg-surface-tertiary" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-medium text-text-primary truncate">{item.name}</p>
+                      {item.category && (
+                        <p className="text-xs text-text-tertiary">{item.category.name}</p>
                       )}
-                    </td>
-                    <td className={`py-3 text-right font-medium ${
-                      !item.categoryId ? 'text-gray-400' : isOver ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
-                    }`}>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <div className="text-right text-sm">
+                      <p className="text-text-secondary">
+                        {formatCurrency(item.budgetAmount)}
+                      </p>
                       {item.categoryId ? (
-                        <>{isOver ? '-' : '+'}{formatCurrency(Math.abs(itemDiff))}</>
-                      ) : <>&mdash;</>}
-                    </td>
-                    <td className="py-3 text-center">
+                        <p className="text-text-tertiary text-xs">
+                          Real: {formatCurrency(item.actualAmount)}
+                        </p>
+                      ) : (
+                        <p className="text-text-tertiary text-xs">Referencia</p>
+                      )}
+                    </div>
+
+                    <div className="w-20 text-right">
+                      {item.categoryId ? (
+                        <p className={`text-sm font-semibold ${
+                          isOver ? 'text-expense' : 'text-income'
+                        }`}>
+                          {isOver ? '-' : '+'}{formatCurrency(Math.abs(itemDiff))}
+                        </p>
+                      ) : (
+                        <span className="text-text-tertiary">&mdash;</span>
+                      )}
+                    </div>
+
+                    <div className="w-20">
                       {item.categoryId ? (
                         <Badge variant={isOver ? 'critical' : item.percentage > 70 ? 'warning' : 'income'}>
                           {isOver ? (type === 'EXPENSE' ? 'Excedido' : 'Superado') : (item.percentage ?? 0) > 70 ? `${(item.percentage ?? 0).toFixed(0)}%` : 'Bien'}
@@ -306,50 +319,43 @@ export default function BudgetsPage() {
                       ) : (
                         <Badge variant="info">Ref.</Badge>
                       )}
-                    </td>
-                    <td className="py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openEdit(item)}
-                          className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                          aria-label="Editar"
-                        >
-                          <HiPencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteId(item.id)}
-                          className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                          aria-label="Eliminar"
-                        >
-                          <HiTrash className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-gray-300 dark:border-gray-600">
-                <td className="py-3 font-bold text-gray-900 dark:text-gray-100">TOTAL</td>
-                <td className="py-3 text-right font-bold text-gray-900 dark:text-gray-100">
-                  {formatCurrency(total)}
-                </td>
-                <td className="py-3 text-right font-bold text-gray-900 dark:text-gray-100">
-                  {formatCurrency(actualTotal)}
-                </td>
-                <td className={`py-3 text-right font-bold ${
-                  diff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                }`}>
-                  {diff >= 0 ? '+' : '-'}{formatCurrency(Math.abs(diff))}
-                </td>
-                <td />
-                <td />
-              </tr>
-            </tfoot>
-          </table>
+                    </div>
+
+                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        onClick={() => openEdit(item)}
+                        className="rounded-lg p-1.5 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary transition-colors"
+                        aria-label="Editar"
+                      >
+                        <HiPencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteId(item.id)}
+                        className="rounded-lg p-1.5 text-text-tertiary hover:bg-expense-bg hover:text-expense transition-colors"
+                        aria-label="Eliminar"
+                      >
+                        <HiTrash className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {item.categoryId && (
+                  <div className="mt-3">
+                    <ProgressBar
+                      value={Math.min(item.percentage, 100)}
+                      animated
+                      thresholdColors
+                      size="sm"
+                      showLabel={false}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-      </Card>
+      </div>
     );
   };
 
@@ -358,10 +364,10 @@ export default function BudgetsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-2xl font-bold text-text-primary">
             Proyeccion del Mes
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm text-text-secondary">
             Planifica tus ingresos y gastos, compara con lo real
           </p>
         </div>
@@ -380,117 +386,87 @@ export default function BudgetsPage() {
       {items.length > 0 && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card padding="md">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
-                  <HiArrowTrendingUp className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Ingresos Proyectados</p>
-                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(projIncome)}
-                  </p>
-                </div>
-              </div>
-            </Card>
-            <Card padding="md">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400">
-                  <HiArrowTrendingDown className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Gastos Proyectados</p>
-                  <p className="text-lg font-bold text-red-600 dark:text-red-400">
-                    {formatCurrency(projExpenses)}
-                  </p>
-                </div>
-              </div>
-            </Card>
-            <Card padding="md">
-              <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                  projBalance >= 0
-                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
-                    : 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400'
-                }`}>
-                  <HiCalculator className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Balance Proyectado</p>
-                  <p className={`text-lg font-bold ${
-                    projBalance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'
-                  }`}>
-                    {formatCurrency(projBalance)}
-                  </p>
-                </div>
-              </div>
-            </Card>
-            <Card padding="md">
-              <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                  actualBalance >= 0
-                    ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
-                    : 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400'
-                }`}>
-                  <HiCurrencyDollar className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Balance Real</p>
-                  <p className={`text-lg font-bold ${
-                    actualBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-                  }`}>
-                    {formatCurrency(actualBalance)}
-                  </p>
-                </div>
-              </div>
-            </Card>
+            <StatCard
+              icon={<HiArrowTrendingUp className="h-5 w-5" />}
+              iconBgClass="bg-income-bg text-income dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light"
+              label="Ingresos Proyectados"
+              value={formatCurrency(projIncome)}
+              index={0}
+            />
+            <StatCard
+              icon={<HiArrowTrendingDown className="h-5 w-5" />}
+              iconBgClass="bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light"
+              label="Gastos Proyectados"
+              value={formatCurrency(projExpenses)}
+              index={1}
+            />
+            <StatCard
+              icon={<HiCalculator className="h-5 w-5" />}
+              iconBgClass={projBalance >= 0
+                ? 'bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-400'
+                : 'bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light'
+              }
+              label="Balance Proyectado"
+              value={formatCurrency(projBalance)}
+              index={2}
+            />
+            <StatCard
+              icon={<HiCurrencyDollar className="h-5 w-5" />}
+              iconBgClass={actualBalance >= 0
+                ? 'bg-income-bg text-income dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light'
+                : 'bg-warning-bg text-warning-dark dark:bg-[rgba(245,158,11,0.12)] dark:text-warning-light'
+              }
+              label="Balance Real"
+              value={formatCurrency(actualBalance)}
+              index={3}
+            />
           </div>
 
           {/* Secondary info row */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card padding="md">
+            <div className="rounded-xl border border-border-primary bg-surface-card p-4 shadow-card">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Ingreso real</span>
-                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(actualIncome)}</span>
+                <span className="text-sm text-text-secondary">Ingreso real</span>
+                <span className="text-sm font-bold text-income">{formatCurrency(actualIncome)}</span>
               </div>
-            </Card>
-            <Card padding="md">
+            </div>
+            <div className="rounded-xl border border-border-primary bg-surface-card p-4 shadow-card">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Gasto real</span>
-                <span className="text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(actualExpenses)}</span>
+                <span className="text-sm text-text-secondary">Gasto real</span>
+                <span className="text-sm font-bold text-expense">{formatCurrency(actualExpenses)}</span>
               </div>
-            </Card>
-            <Card padding="md">
+            </div>
+            <div className="rounded-xl border border-border-primary bg-surface-card p-4 shadow-card">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Gastos no planeados</span>
-                <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{formatCurrency(unplanned)}</span>
+                <span className="text-sm text-text-secondary">Gastos no planeados</span>
+                <span className="text-sm font-bold text-warning-dark dark:text-warning-light">{formatCurrency(unplanned)}</span>
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Expense execution progress */}
           {projExpenses > 0 && (
-            <Card padding="md">
+            <div className="rounded-xl border border-border-primary bg-surface-card p-6 shadow-card">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-text-primary">
                   Ejecucion de gastos
                 </span>
                 <span className={`text-sm font-bold ${
-                  overallPct > 100 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
+                  overallPct > 100 ? 'text-expense' : 'text-income'
                 }`}>
                   {overallPct.toFixed(1)}%
                 </span>
               </div>
-              <ProgressBar value={Math.min(overallPct, 100)} />
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <ProgressBar value={Math.min(overallPct, 100)} animated thresholdColors />
+              <p className="mt-2 text-xs text-text-tertiary">
                 Has gastado {formatCurrency(actualExpenses)} de {formatCurrency(projExpenses)} proyectados
               </p>
-            </Card>
+            </div>
           )}
         </>
       )}
 
-      {/* Tables */}
+      {/* Budget items */}
       {items.length === 0 ? (
         <EmptyState
           icon={<HiCalculator className="h-8 w-8" />}
@@ -500,9 +476,9 @@ export default function BudgetsPage() {
           onAction={() => openCreate('INCOME')}
         />
       ) : (
-        <div className="space-y-6">
-          {renderTable(incomeItems, 'INCOME', 'Ingresos Proyectados', projIncome, actualIncome)}
-          {renderTable(expenseItems, 'EXPENSE', 'Gastos Proyectados', projExpenses, actualExpenses)}
+        <div className="space-y-8">
+          {renderBudgetSection(incomeItems, 'INCOME', 'Ingresos Proyectados', projIncome, actualIncome)}
+          {renderBudgetSection(expenseItems, 'EXPENSE', 'Gastos Proyectados', projExpenses, actualExpenses)}
         </div>
       )}
 
@@ -548,8 +524,8 @@ export default function BudgetsPage() {
             value={form.amount}
             onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
           />
-          <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
-            <p className="text-xs text-blue-700 dark:text-blue-300">
+          <div className="rounded-lg bg-primary-50 p-3 dark:bg-primary-950/20">
+            <p className="text-xs text-primary-700 dark:text-primary-300">
               <HiBanknotes className="mr-1 inline h-3.5 w-3.5" />
               {form.categoryId
                 ? `Se comparara con tus ${form.type === 'INCOME' ? 'ingresos' : 'gastos'} reales en esta categoria.`

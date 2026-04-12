@@ -12,7 +12,7 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { categoriesApi } from '../api/categories.api';
@@ -33,11 +33,13 @@ const initialForm: CategoryFormState = {
   color: CATEGORY_COLORS[0] ?? '#3b82f6',
 };
 
+const TYPE_TABS: { value: TransactionType | ''; label: string }[] = [
+  { value: '', label: 'Todas' },
+  { value: 'EXPENSE', label: 'Gastos' },
+  { value: 'INCOME', label: 'Ingresos' },
+];
+
 function isDefaultCategory(category: Category): boolean {
-  // Default categories have no userId (or a sentinel value). Heuristic: if created before user,
-  // treat categories with userId as custom.  Since backend might mark defaults differently,
-  // we use the presence of userId field: defaults may have userId = null or a system id.
-  // Fallback: we check if it has no userId or if it was created at app start.
   return !category.userId;
 }
 
@@ -50,13 +52,14 @@ export default function CategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<TransactionType | ''>('');
 
   const loadData = useCallback(async () => {
     try {
       const res = await categoriesApi.getAll();
       setCategories(res.data.data);
     } catch {
-      toast.error('Error al cargar categorías');
+      toast.error('Error al cargar categorias');
     } finally {
       setLoading(false);
     }
@@ -66,8 +69,9 @@ export default function CategoriesPage() {
     loadData();
   }, [loadData]);
 
-  const expenseCategories = categories.filter((c) => c.type === 'EXPENSE');
-  const incomeCategories = categories.filter((c) => c.type === 'INCOME');
+  const filteredCategories = typeFilter
+    ? categories.filter((c) => c.type === typeFilter)
+    : categories;
 
   const openCreate = () => {
     setEditingId(null);
@@ -102,7 +106,7 @@ export default function CategoriesPage() {
         };
         const res = await categoriesApi.update(editingId, data);
         setCategories((prev) => prev.map((c) => (c.id === editingId ? res.data.data : c)));
-        toast.success('Categoría actualizada');
+        toast.success('Categoria actualizada');
       } else {
         const data: CreateCategoryData = {
           name: form.name.trim(),
@@ -112,11 +116,11 @@ export default function CategoriesPage() {
         };
         const res = await categoriesApi.create(data);
         setCategories((prev) => [...prev, res.data.data]);
-        toast.success('Categoría creada');
+        toast.success('Categoria creada');
       }
       setModalOpen(false);
     } catch {
-      toast.error('Error al guardar categoría');
+      toast.error('Error al guardar categoria');
     } finally {
       setSaving(false);
     }
@@ -128,7 +132,7 @@ export default function CategoriesPage() {
     try {
       await categoriesApi.delete(deleteId);
       setCategories((prev) => prev.filter((c) => c.id !== deleteId));
-      toast.success('Categoría eliminada');
+      toast.success('Categoria eliminada');
       setDeleteId(null);
     } catch {
       toast.error('No se pudo eliminar. Puede tener transacciones asociadas.');
@@ -137,107 +141,123 @@ export default function CategoriesPage() {
     }
   };
 
-  const renderCategoryCard = (cat: Category) => {
-    const isDefault = isDefaultCategory(cat);
-    return (
-      <div
-        key={cat.id}
-        className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700/50"
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white"
-            style={{ backgroundColor: cat.color }}
-          >
-            {cat.icon ? cat.icon.charAt(0).toUpperCase() : '?'}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {cat.name}
-              </span>
-              {isDefault && (
-                <Badge variant="info">Por defecto</Badge>
-              )}
-            </div>
-            <span className="text-xs text-gray-400 dark:text-gray-500">{cat.icon}</span>
-          </div>
-        </div>
-        {!isDefault && (
-          <div className="flex gap-1">
-            <button
-              onClick={() => openEdit(cat)}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-              aria-label="Editar"
-            >
-              <HiPencil className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setDeleteId(cat.id)}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-              aria-label="Eliminar"
-            >
-              <HiTrash className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="xl" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton variant="text" width="180px" height="32px" />
+          <Skeleton variant="rectangular" width={160} height={40} />
+        </div>
+        <Skeleton variant="rectangular" width="100%" height={44} />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} variant="card" height="140px" />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Categorías</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Categorias</h1>
+          <p className="mt-1 text-sm text-text-secondary">
+            {categories.length} categorias en total
+          </p>
+        </div>
         <Button icon={<HiPlus className="h-4 w-4" />} onClick={openCreate}>
-          Nueva Categoría
+          Agregar
         </Button>
       </div>
 
-      {categories.length === 0 ? (
+      {/* Type filter tabs */}
+      <div className="flex items-center gap-1 rounded-lg bg-surface-tertiary p-1">
+        {TYPE_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => setTypeFilter(tab.value as TransactionType | '')}
+            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all ${
+              typeFilter === tab.value
+                ? 'bg-surface-card text-text-primary shadow-xs'
+                : 'text-text-tertiary hover:text-text-secondary'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredCategories.length === 0 ? (
         <EmptyState
           icon={<HiTag className="h-8 w-8" />}
-          title="Sin categorías"
-          description="Crea categorías para organizar tus transacciones."
-          actionLabel="Crear Categoría"
+          title="Sin categorias"
+          description={
+            typeFilter
+              ? 'No hay categorias de este tipo. Crea una nueva.'
+              : 'Crea categorias para organizar tus transacciones.'
+          }
+          actionLabel="Crear Categoria"
           onAction={openCreate}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Expense Categories */}
-          <Card title="Categorías de Gastos" subtitle={`${expenseCategories.length} categorías`} padding="md">
-            {expenseCategories.length === 0 ? (
-              <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                Sin categorías de gastos
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {expenseCategories.map(renderCategoryCard)}
-              </div>
-            )}
-          </Card>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {filteredCategories.map((cat) => {
+            const isDefault = isDefaultCategory(cat);
+            return (
+              <Card key={cat.id} padding="md" className="group relative">
+                {/* Action buttons (top-right, visible on hover) */}
+                {!isDefault && (
+                  <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      onClick={() => openEdit(cat)}
+                      className="rounded-lg p-1.5 text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-primary-600"
+                      aria-label="Editar"
+                    >
+                      <HiPencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteId(cat.id)}
+                      className="rounded-lg p-1.5 text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-red-600"
+                      aria-label="Eliminar"
+                    >
+                      <HiTrash className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
 
-          {/* Income Categories */}
-          <Card title="Categorías de Ingresos" subtitle={`${incomeCategories.length} categorías`} padding="md">
-            {incomeCategories.length === 0 ? (
-              <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                Sin categorías de ingresos
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {incomeCategories.map(renderCategoryCard)}
-              </div>
-            )}
-          </Card>
+                <div className="flex flex-col items-center text-center">
+                  {/* Icon with colored background */}
+                  <div
+                    className="flex h-12 w-12 items-center justify-center rounded-xl text-base font-bold text-white"
+                    style={{ backgroundColor: cat.color }}
+                  >
+                    {cat.icon ? cat.icon.replace('Hi', '').charAt(0).toUpperCase() : '?'}
+                  </div>
+
+                  {/* Name */}
+                  <p className="mt-3 text-sm font-semibold text-text-primary">
+                    {cat.name}
+                  </p>
+
+                  {/* Type Badge */}
+                  <div className="mt-2">
+                    <Badge variant={cat.type === 'INCOME' ? 'income' : 'expense'}>
+                      {cat.type === 'INCOME' ? 'Ingreso' : 'Gasto'}
+                    </Badge>
+                  </div>
+
+                  {/* Default indicator */}
+                  {isDefault && (
+                    <p className="mt-1.5 text-xs text-text-tertiary">Por defecto</p>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -245,7 +265,7 @@ export default function CategoriesPage() {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingId ? 'Editar Categoría' : 'Nueva Categoría'}
+        title={editingId ? 'Editar Categoria' : 'Nueva Categoria'}
         size="lg"
         footer={
           <>
@@ -253,7 +273,7 @@ export default function CategoriesPage() {
               Cancelar
             </Button>
             <Button onClick={handleSubmit} loading={saving}>
-              {editingId ? 'Guardar Cambios' : 'Crear Categoría'}
+              {editingId ? 'Guardar Cambios' : 'Crear Categoria'}
             </Button>
           </>
         }
@@ -268,17 +288,15 @@ export default function CategoriesPage() {
 
           {/* Type Toggle */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Tipo
-            </label>
+            <label className="label">Tipo</label>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setForm((f) => ({ ...f, type: 'EXPENSE' }))}
                 className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                   form.type === 'EXPENSE'
-                    ? 'border-red-500 bg-red-50 text-red-700 dark:border-red-400 dark:bg-red-900/30 dark:text-red-400'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+                    ? 'border-expense bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light'
+                    : 'border-border-primary text-text-tertiary hover:bg-surface-secondary'
                 }`}
               >
                 Gasto
@@ -288,8 +306,8 @@ export default function CategoriesPage() {
                 onClick={() => setForm((f) => ({ ...f, type: 'INCOME' }))}
                 className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                   form.type === 'INCOME'
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : 'border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+                    ? 'border-income bg-income-bg text-income dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light'
+                    : 'border-border-primary text-text-tertiary hover:bg-surface-secondary'
                 }`}
               >
                 Ingreso
@@ -299,9 +317,7 @@ export default function CategoriesPage() {
 
           {/* Icon Picker */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Icono
-            </label>
+            <label className="label">Icono</label>
             <div className="grid grid-cols-8 gap-2">
               {CATEGORY_ICONS.map((icon) => (
                 <button
@@ -310,8 +326,8 @@ export default function CategoriesPage() {
                   onClick={() => setForm((f) => ({ ...f, icon }))}
                   className={`flex h-10 w-10 items-center justify-center rounded-lg border text-xs font-medium transition-colors ${
                     form.icon === icon
-                      ? 'border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-500/30 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-400'
-                      : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700 ring-2 ring-primary-500/30 dark:border-primary-400 dark:bg-primary-950/30 dark:text-primary-400'
+                      : 'border-border-primary text-text-tertiary hover:bg-surface-secondary'
                   }`}
                   title={icon}
                 >
@@ -319,16 +335,14 @@ export default function CategoriesPage() {
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+            <p className="mt-1 text-xs text-text-tertiary">
               Seleccionado: {form.icon}
             </p>
           </div>
 
           {/* Color Picker */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Color
-            </label>
+            <label className="label">Color</label>
             <div className="grid grid-cols-10 gap-2">
               {CATEGORY_COLORS.map((color) => (
                 <button
@@ -336,7 +350,7 @@ export default function CategoriesPage() {
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, color }))}
                   className={`flex h-8 w-8 items-center justify-center rounded-full transition-transform hover:scale-110 ${
-                    form.color === color ? 'ring-2 ring-offset-2 ring-gray-400 dark:ring-offset-gray-800' : ''
+                    form.color === color ? 'ring-2 ring-offset-2 ring-text-tertiary dark:ring-offset-surface-card' : ''
                   }`}
                   style={{ backgroundColor: color }}
                   title={color}
@@ -348,23 +362,23 @@ export default function CategoriesPage() {
           </div>
 
           {/* Preview */}
-          <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50">
-            <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Vista previa</p>
+          <Card padding="sm" className="bg-surface-secondary">
+            <p className="mb-2 text-xs font-medium text-text-tertiary">Vista previa</p>
             <div className="flex items-center gap-3">
               <div
-                className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white"
                 style={{ backgroundColor: form.color }}
               >
                 {form.icon ? form.icon.replace('Hi', '').charAt(0) : '?'}
               </div>
-              <span className="font-medium text-gray-900 dark:text-gray-100">
-                {form.name || 'Nombre de categoría'}
+              <span className="font-medium text-text-primary">
+                {form.name || 'Nombre de categoria'}
               </span>
               <Badge variant={form.type === 'EXPENSE' ? 'expense' : 'income'}>
                 {form.type === 'EXPENSE' ? 'Gasto' : 'Ingreso'}
               </Badge>
             </div>
-          </div>
+          </Card>
         </div>
       </Modal>
 
@@ -373,8 +387,8 @@ export default function CategoriesPage() {
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="Eliminar Categoría"
-        message="¿Estás seguro de que deseas eliminar esta categoría? Si tiene transacciones asociadas, la eliminación podría fallar."
+        title="Eliminar Categoria"
+        message="Estas seguro de que deseas eliminar esta categoria? Si tiene transacciones asociadas, la eliminacion podria fallar."
         confirmLabel="Eliminar"
         loading={deleting}
       />

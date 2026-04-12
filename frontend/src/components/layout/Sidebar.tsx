@@ -24,7 +24,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <HiHome className="h-5 w-5" /> },
   { label: 'Transacciones', path: '/transactions', icon: <HiArrowsRightLeft className="h-5 w-5" /> },
   { label: 'Categorias', path: '/categories', icon: <HiTag className="h-5 w-5" /> },
-  { label: 'Proyección', path: '/budgets', icon: <HiCalculator className="h-5 w-5" /> },
+  { label: 'Presupuestos', path: '/budgets', icon: <HiCalculator className="h-5 w-5" /> },
   { label: 'Recurrentes', path: '/recurring', icon: <HiArrowPath className="h-5 w-5" /> },
   { label: 'Inversiones', path: '/investments', icon: <HiChartBar className="h-5 w-5" /> },
   { label: 'Analisis', path: '/analytics', icon: <HiChartPie className="h-5 w-5" /> },
@@ -32,15 +32,17 @@ const navItems: NavItem[] = [
 ];
 
 export default function Sidebar() {
-  const { sidebarOpen, toggleSidebar, setSidebarOpen } = useUiStore();
+  const { sidebarOpen, sidebarCollapsed, toggleSidebarCollapsed, setSidebarOpen } = useUiStore();
   const { user, logout } = useAuthStore();
+
+  const isCollapsed = sidebarCollapsed && !sidebarOpen;
 
   return (
     <>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-sidebar bg-black/40 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -48,20 +50,23 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-40 flex flex-col border-r border-gray-200
-          bg-white transition-all duration-300 dark:border-gray-700 dark:bg-gray-900
-          ${sidebarOpen ? 'w-64' : 'w-0 -translate-x-full lg:w-20 lg:translate-x-0'}
+          fixed inset-y-0 left-0 z-sidebar flex flex-col border-r border-border-primary
+          bg-surface-card transition-all duration-normal
+          ${sidebarOpen
+            ? 'w-[260px]'
+            : isCollapsed
+              ? 'hidden w-0 lg:flex lg:w-[68px]'
+              : 'hidden w-0 lg:flex lg:w-[260px]'
+          }
         `}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-gray-200 px-4 dark:border-gray-700">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 font-bold text-white">
+        <div className="flex h-16 items-center gap-3 border-b border-border-primary px-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-600 font-bold text-white">
             F
           </div>
-          {sidebarOpen && (
-            <span className="text-lg font-bold text-gray-900 dark:text-white">
-              Finanzas
-            </span>
+          {(!isCollapsed || sidebarOpen) && (
+            <span className="text-lg font-bold text-text-primary">Finanzas</span>
           )}
         </div>
 
@@ -75,60 +80,56 @@ export default function Sidebar() {
                 if (window.innerWidth < 1024) setSidebarOpen(false);
               }}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'
-                } ${!sidebarOpen ? 'justify-center' : ''}`
+                    ? 'bg-primary-50 text-primary-700 dark:bg-primary-950/30 dark:text-primary-400'
+                    : 'text-text-secondary hover:bg-surface-tertiary hover:text-text-primary'
+                } ${isCollapsed && !sidebarOpen ? 'justify-center' : ''}`
               }
-              title={!sidebarOpen ? item.label : undefined}
+              title={isCollapsed && !sidebarOpen ? item.label : undefined}
             >
               <span className="shrink-0">{item.icon}</span>
-              {sidebarOpen && <span>{item.label}</span>}
+              {(!isCollapsed || sidebarOpen) && <span>{item.label}</span>}
             </NavLink>
           ))}
         </nav>
 
         {/* Bottom section */}
-        <div className="border-t border-gray-200 p-3 dark:border-gray-700">
-          {/* User info */}
-          {user && sidebarOpen && (
-            <div className="mb-3 flex items-center gap-3 rounded-lg px-3 py-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+        <div className="border-t border-border-primary p-3">
+          {user && (!isCollapsed || sidebarOpen) && (
+            <div className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-50 text-sm font-semibold text-primary-700 dark:bg-primary-950/40 dark:text-primary-400">
                 {user.name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {user.name}
-                </p>
-                <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
+                <p className="truncate text-sm font-medium text-text-primary">{user.name}</p>
+                <p className="truncate text-xs text-text-tertiary">{user.email}</p>
               </div>
             </div>
           )}
 
-          {/* Logout */}
           <button
             onClick={() => void logout()}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400 ${
-              !sidebarOpen ? 'justify-center' : ''
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-expense-bg hover:text-expense dark:hover:bg-[rgba(239,68,68,0.08)] dark:hover:text-expense-light ${
+              isCollapsed && !sidebarOpen ? 'justify-center' : ''
             }`}
-            title={!sidebarOpen ? 'Cerrar sesion' : undefined}
+            title={isCollapsed && !sidebarOpen ? 'Cerrar sesion' : undefined}
           >
             <HiArrowRightOnRectangle className="h-5 w-5 shrink-0" />
-            {sidebarOpen && <span>Cerrar sesion</span>}
+            {(!isCollapsed || sidebarOpen) && <span>Cerrar sesion</span>}
           </button>
 
-          {/* Collapse button (desktop) */}
+          {/* Collapse toggle (desktop) */}
           <button
-            onClick={toggleSidebar}
-            className={`mt-1 hidden w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300 lg:flex ${
-              !sidebarOpen ? 'justify-center' : ''
+            onClick={toggleSidebarCollapsed}
+            className={`mt-1 hidden w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-secondary lg:flex ${
+              isCollapsed && !sidebarOpen ? 'justify-center' : ''
             }`}
           >
             <HiChevronDoubleLeft
-              className={`h-5 w-5 shrink-0 transition-transform ${!sidebarOpen ? 'rotate-180' : ''}`}
+              className={`h-5 w-5 shrink-0 transition-transform duration-normal ${isCollapsed && !sidebarOpen ? 'rotate-180' : ''}`}
             />
-            {sidebarOpen && <span>Colapsar</span>}
+            {(!isCollapsed || sidebarOpen) && <span>Colapsar</span>}
           </button>
         </div>
       </aside>

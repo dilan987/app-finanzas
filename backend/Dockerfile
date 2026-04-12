@@ -28,4 +28,4 @@ COPY --from=builder /app/prisma/seed.ts ./prisma/seed.ts
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss && npx tsx prisma/seed.ts && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && npx tsx prisma/seed.ts && node dist/index.js"]

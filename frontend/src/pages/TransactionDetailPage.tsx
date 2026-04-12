@@ -14,7 +14,7 @@ import toast from 'react-hot-toast';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import Modal from '../components/ui/Modal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import TransactionForm from '../components/forms/TransactionForm';
@@ -86,19 +86,43 @@ export default function TransactionDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Spinner size="xl" />
+      <div className="mx-auto max-w-2xl space-y-6">
+        <Skeleton variant="text" width="140px" />
+        <Card padding="lg">
+          <div className="flex items-start justify-between">
+            <Skeleton variant="rectangular" width={80} height={24} />
+            <div className="flex gap-2">
+              <Skeleton variant="rectangular" width={90} height={36} />
+              <Skeleton variant="rectangular" width={100} height={36} />
+            </div>
+          </div>
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <Skeleton variant="text" width="200px" height="40px" />
+            <Skeleton variant="text" width="160px" />
+          </div>
+          <div className="mt-8 space-y-0">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 py-4">
+                <Skeleton variant="circular" width={40} height={40} />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton variant="text" width="30%" />
+                  <Skeleton variant="text" width="50%" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
     );
   }
 
   if (!transaction) {
     return (
-      <div className="text-center">
-        <p className="text-gray-500 dark:text-gray-400">Transaccion no encontrada.</p>
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-text-secondary">Transaccion no encontrada.</p>
         <Link
           to="/transactions"
-          className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
+          className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400"
         >
           <HiArrowLeft className="h-4 w-4" />
           Volver a transacciones
@@ -114,7 +138,7 @@ export default function TransactionDetailPage() {
       {/* Back Button */}
       <Link
         to="/transactions"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-text-tertiary transition-colors hover:text-text-primary"
       >
         <HiArrowLeft className="h-4 w-4" />
         Volver a transacciones
@@ -148,86 +172,94 @@ export default function TransactionDetailPage() {
         </div>
 
         {/* Amount */}
-        <div className="mt-6 text-center">
+        <div className="mt-8 text-center">
           <p
             className={`text-4xl font-bold ${
-              isIncome
-                ? 'text-emerald-600 dark:text-emerald-400'
-                : 'text-red-600 dark:text-red-400'
+              isIncome ? 'text-income' : 'text-expense'
             }`}
           >
             {isIncome ? '+' : '-'}
             {formatCurrency(transaction.amount)}
           </p>
-          <p className="mt-2 text-lg text-gray-700 dark:text-gray-300">
-            {transaction.description}
-          </p>
+          {transaction.description && (
+            <p className="mt-2 text-lg text-text-secondary">
+              {transaction.description}
+            </p>
+          )}
         </div>
 
         {/* Detail Rows */}
-        <div className="mt-8 divide-y divide-gray-100 dark:divide-gray-700/50">
+        <div className="mt-8 divide-y divide-border-primary">
           {/* Category */}
           <div className="flex items-center gap-4 py-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-              <HiTag className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-tertiary">
+              <HiTag className="h-5 w-5 text-text-tertiary" />
             </div>
-            <div className="flex-1">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Categoria</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-text-tertiary">Categoria</p>
               <div className="mt-0.5 flex items-center gap-2">
                 {transaction.category && (
                   <span
-                    className="inline-block h-3 w-3 rounded-full"
+                    className="inline-block h-3 w-3 shrink-0 rounded-full"
                     style={{ backgroundColor: transaction.category.color }}
                   />
                 )}
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                <span className="text-sm font-medium text-text-primary">
                   {transaction.category?.name ?? 'Sin categoria'}
                 </span>
               </div>
             </div>
+            {transaction.category && (
+              <Badge variant={isIncome ? 'income' : 'expense'}>
+                {isIncome ? 'Ingreso' : 'Gasto'}
+              </Badge>
+            )}
           </div>
 
           {/* Date */}
           <div className="flex items-center gap-4 py-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-              <HiCalendarDays className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-tertiary">
+              <HiCalendarDays className="h-5 w-5 text-text-tertiary" />
             </div>
-            <div className="flex-1">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Fecha</p>
-              <p className="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-text-tertiary">Fecha</p>
+              <p className="mt-0.5 text-sm font-medium text-text-primary">
                 {formatDate(transaction.date)}
               </p>
             </div>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
+            <span className="text-xs text-text-tertiary">
               {formatRelativeDate(transaction.date)}
             </span>
           </div>
 
           {/* Payment Method */}
           <div className="flex items-center gap-4 py-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-              <HiCreditCard className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-tertiary">
+              <HiCreditCard className="h-5 w-5 text-text-tertiary" />
             </div>
-            <div className="flex-1">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Metodo de pago</p>
-              <p className="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-text-tertiary">Metodo de pago</p>
+              <p className="mt-0.5 text-sm font-medium text-text-primary">
                 {getPaymentMethodLabel(transaction.paymentMethod)}
               </p>
             </div>
+            <Badge variant="neutral">
+              {getPaymentMethodLabel(transaction.paymentMethod)}
+            </Badge>
           </div>
 
           {/* Created at */}
           <div className="flex items-center gap-4 py-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-              <HiClock className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-tertiary">
+              <HiClock className="h-5 w-5 text-text-tertiary" />
             </div>
-            <div className="flex-1">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Creada</p>
-              <p className="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-text-tertiary">Creada</p>
+              <p className="mt-0.5 text-sm font-medium text-text-primary">
                 {formatDate(transaction.createdAt)}
               </p>
             </div>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
+            <span className="text-xs text-text-tertiary">
               {formatRelativeDate(transaction.createdAt)}
             </span>
           </div>

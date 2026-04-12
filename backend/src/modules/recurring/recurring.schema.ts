@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createRecurringSchema = z.object({
   type: z.enum(['INCOME', 'EXPENSE'], {
-    errorMap: () => ({ message: 'Type must be INCOME or EXPENSE' }),
+    message: 'Type must be INCOME or EXPENSE',
   }),
   amount: z
     .number()
@@ -15,17 +15,13 @@ export const createRecurringSchema = z.object({
     .optional(),
   categoryId: z.string().min(1, 'Category ID is required'),
   frequency: z.enum(['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY'], {
-    errorMap: () => ({
-      message: 'Frequency must be DAILY, WEEKLY, BIWEEKLY, MONTHLY, or YEARLY',
-    }),
+    message: 'Frequency must be DAILY, WEEKLY, BIWEEKLY, MONTHLY, or YEARLY',
   }),
   nextExecutionDate: z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), { message: 'Must be a valid date string' }),
   paymentMethod: z.enum(['CASH', 'DEBIT_CARD', 'CREDIT_CARD', 'TRANSFER'], {
-    errorMap: () => ({
-      message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
-    }),
+    message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
   }),
   currency: z.string().length(3, 'Currency must be a 3-letter code').default('COP'),
 });
@@ -33,7 +29,7 @@ export const createRecurringSchema = z.object({
 export const updateRecurringSchema = z.object({
   type: z
     .enum(['INCOME', 'EXPENSE'], {
-      errorMap: () => ({ message: 'Type must be INCOME or EXPENSE' }),
+      message: 'Type must be INCOME or EXPENSE',
     })
     .optional(),
   amount: z
@@ -50,9 +46,7 @@ export const updateRecurringSchema = z.object({
   categoryId: z.string().min(1, 'Category ID is required').optional(),
   frequency: z
     .enum(['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY'], {
-      errorMap: () => ({
-        message: 'Frequency must be DAILY, WEEKLY, BIWEEKLY, MONTHLY, or YEARLY',
-      }),
+      message: 'Frequency must be DAILY, WEEKLY, BIWEEKLY, MONTHLY, or YEARLY',
     })
     .optional(),
   nextExecutionDate: z
@@ -61,28 +55,26 @@ export const updateRecurringSchema = z.object({
     .optional(),
   paymentMethod: z
     .enum(['CASH', 'DEBIT_CARD', 'CREDIT_CARD', 'TRANSFER'], {
-      errorMap: () => ({
-        message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
-      }),
+      message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
     })
     .optional(),
   currency: z.string().length(3, 'Currency must be a 3-letter code').optional(),
 });
 
 export const toggleActiveSchema = z.object({
-  isActive: z.boolean({ required_error: 'isActive is required' }),
+  isActive: z.boolean({ message: 'isActive is required' }),
 });
 
 export const getRecurringQuerySchema = z.object({
   isActive: z
     .enum(['true', 'false'], {
-      errorMap: () => ({ message: 'isActive must be true or false' }),
+      message: 'isActive must be true or false',
     })
     .transform((val) => val === 'true')
     .optional(),
   type: z
     .enum(['INCOME', 'EXPENSE'], {
-      errorMap: () => ({ message: 'Type must be INCOME or EXPENSE' }),
+      message: 'Type must be INCOME or EXPENSE',
     })
     .optional(),
   page: z.coerce.number().int().min(1).default(1),

@@ -1,0 +1,8 @@
+{
+  "project_name": "app-finanzas",
+  "ai_agent": "claude",
+  "branch_numbering": "sequential",
+  "script_variant": "sh",
+  "initialized_at": "2026-04-12",
+  "spec_kit_version": "0.4.x"
+}

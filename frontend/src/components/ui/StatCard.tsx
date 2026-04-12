@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { motion } from 'motion/react';
 import { HiArrowTrendingUp, HiArrowTrendingDown } from 'react-icons/hi2';
 
 interface StatCardProps {
@@ -11,30 +12,37 @@ interface StatCardProps {
     isPositive: boolean;
   };
   className?: string;
+  index?: number;
 }
 
 export default function StatCard({
   icon,
-  iconBgClass = 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
+  iconBgClass = 'bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-400',
   label,
   value,
   trend,
   className = '',
+  index = 0,
 }: StatCardProps) {
   return (
-    <div
-      className={`rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800 ${className}`}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.05, ease: [0, 0, 0.2, 1] }}
+      className={`rounded-xl border border-border-primary bg-surface-card p-5 shadow-card ${className}`}
     >
       <div className="flex items-start justify-between">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-full ${iconBgClass}`}>
+        <div
+          className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconBgClass}`}
+        >
           {icon}
         </div>
         {trend && (
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
               trend.isPositive
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
-                : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+                ? 'bg-income-bg text-income dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light'
+                : 'bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light'
             }`}
           >
             {trend.isPositive ? (
@@ -46,10 +54,12 @@ export default function StatCard({
           </span>
         )}
       </div>
-      <div className="mt-3">
-        <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+      <div className="mt-4">
+        <p className="text-sm font-medium text-text-secondary">{label}</p>
+        <p className="mt-1 text-2xl font-bold tracking-tight text-text-primary">
+          {value}
+        </p>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -56,3 +56,5 @@ services:
 
 volumes:
   postgres_data:
+    external: true
+    name: finanzas-app_postgres_data

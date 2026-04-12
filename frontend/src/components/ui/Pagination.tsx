@@ -29,21 +29,13 @@ export default function Pagination({
     }
 
     pages.push(1);
-
-    if (currentPage > 3) {
-      pages.push('ellipsis');
-    }
+    if (currentPage > 3) pages.push('ellipsis');
 
     const start = Math.max(2, currentPage - 1);
     const end = Math.min(totalPages - 1, currentPage + 1);
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
+    for (let i = start; i <= end; i++) pages.push(i);
 
-    if (currentPage < totalPages - 2) {
-      pages.push('ellipsis');
-    }
-
+    if (currentPage < totalPages - 2) pages.push('ellipsis');
     pages.push(totalPages);
 
     return pages;
@@ -52,10 +44,8 @@ export default function Pagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div
-      className={`flex flex-col items-center gap-3 sm:flex-row sm:justify-between ${className}`}
-    >
-      <p className="text-sm text-gray-600 dark:text-gray-400">
+    <div className={`flex flex-col items-center gap-3 sm:flex-row sm:justify-between ${className}`}>
+      <p className="text-sm text-text-secondary">
         Mostrando {startItem} a {endItem} de {totalItems} resultados
       </p>
 
@@ -63,7 +53,7 @@ export default function Pagination({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-700"
+          className="rounded-lg p-2 text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Pagina anterior"
         >
           <HiChevronLeft className="h-4 w-4" />
@@ -71,10 +61,7 @@ export default function Pagination({
 
         {getVisiblePages().map((page, idx) =>
           page === 'ellipsis' ? (
-            <span
-              key={`ellipsis-${idx}`}
-              className="px-2 text-sm text-gray-400 dark:text-gray-500"
-            >
+            <span key={`ellipsis-${idx}`} className="px-2 text-sm text-text-tertiary">
               ...
             </span>
           ) : (
@@ -83,8 +70,8 @@ export default function Pagination({
               onClick={() => onPageChange(page)}
               className={`min-w-[36px] rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                 page === currentPage
-                  ? 'bg-blue-600 text-white dark:bg-blue-500'
-                  : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+                  ? 'bg-primary-600 text-white shadow-xs'
+                  : 'text-text-secondary hover:bg-surface-tertiary'
               }`}
               aria-current={page === currentPage ? 'page' : undefined}
             >
@@ -96,7 +83,7 @@ export default function Pagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-700"
+          className="rounded-lg p-2 text-text-tertiary transition-colors hover:bg-surface-tertiary hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Pagina siguiente"
         >
           <HiChevronRight className="h-4 w-4" />

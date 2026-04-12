@@ -14,7 +14,7 @@ import {
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import Spinner from '../components/ui/Spinner';
+import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import StatCard from '../components/ui/StatCard';
 import TrendLineChart from '../components/charts/TrendLineChart';
@@ -37,7 +37,30 @@ function getSeverityConfig(severity: Severity): { icon: React.ReactNode; variant
     case 'WARNING':
       return { icon: <HiExclamationTriangle className="h-5 w-5" />, variant: 'warning', label: 'Advertencia' };
     case 'CRITICAL':
-      return { icon: <HiFire className="h-5 w-5" />, variant: 'critical', label: 'Crítico' };
+      return { icon: <HiFire className="h-5 w-5" />, variant: 'critical', label: 'Critico' };
+  }
+}
+
+function getSeverityBorderClass(severity: Severity, isRead: boolean): string {
+  if (isRead) return 'border-border-primary bg-surface-card';
+  switch (severity) {
+    case 'INFO':
+      return 'border-primary-200 bg-primary-50/50 dark:border-primary-800 dark:bg-primary-950/20';
+    case 'WARNING':
+      return 'border-warning-dark/20 bg-warning-bg/50 dark:border-warning-light/20 dark:bg-[rgba(245,158,11,0.06)]';
+    case 'CRITICAL':
+      return 'border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20';
+  }
+}
+
+function getSeverityIconClass(severity: Severity): string {
+  switch (severity) {
+    case 'INFO':
+      return 'text-primary-500 dark:text-primary-400';
+    case 'WARNING':
+      return 'text-warning-dark dark:text-warning-light';
+    case 'CRITICAL':
+      return 'text-expense dark:text-expense-light';
   }
 }
 
@@ -82,7 +105,7 @@ export default function AnalyticsPage() {
       })));
       setRecommendations(recRes.data.data ?? []);
     } catch {
-      toast.error('Error al cargar análisis');
+      toast.error('Error al cargar analisis');
     } finally {
       setLoading(false);
     }
@@ -112,7 +135,7 @@ export default function AnalyticsPage() {
       const res = await analyticsApi.markRecommendationAsRead(id);
       setRecommendations((prev) => prev.map((r) => (r.id === id ? res.data.data : r)));
     } catch {
-      toast.error('Error al marcar como leída');
+      toast.error('Error al marcar como leida');
     } finally {
       setMarkingReadId(null);
     }
@@ -131,8 +154,17 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="xl" />
+      <div className="space-y-6 p-6">
+        <Skeleton variant="text" width="240px" height="32px" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} variant="card" height="120px" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Skeleton variant="chart" height="350px" />
+          <Skeleton variant="chart" height="350px" />
+        </div>
       </div>
     );
   }
@@ -141,7 +173,7 @@ export default function AnalyticsPage() {
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Análisis Inteligente</h1>
+        <h1 className="text-2xl font-bold text-text-primary">Analisis Inteligente</h1>
       </div>
 
       {/* Financial Summary */}
@@ -149,30 +181,34 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             icon={<HiArrowTrendingUp className="h-5 w-5" />}
-            iconBgClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400"
+            iconBgClass="bg-income-bg text-income dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light"
             label="Ingresos del mes"
             value={formatCurrency(summaryData.totalIncome)}
+            index={0}
           />
           <StatCard
             icon={<HiArrowTrendingDown className="h-5 w-5" />}
-            iconBgClass="bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400"
+            iconBgClass="bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light"
             label="Gastos del mes"
             value={formatCurrency(summaryData.totalExpenses)}
+            index={1}
           />
           <StatCard
             icon={<HiScale className="h-5 w-5" />}
             iconBgClass={summaryData.balance >= 0
-              ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
-              : 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400'
+              ? 'bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-400'
+              : 'bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light'
             }
             label="Balance"
             value={formatCurrency(summaryData.balance)}
+            index={2}
           />
           <StatCard
             icon={<HiClipboardDocumentList className="h-5 w-5" />}
-            iconBgClass="bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400"
+            iconBgClass="bg-invest-bg text-invest dark:bg-[rgba(139,92,246,0.12)] dark:text-invest-light"
             label="Tasa de ahorro"
             value={`${(summaryData.savingsRate ?? 0).toFixed(1)}%`}
+            index={3}
           />
         </div>
       )}
@@ -180,35 +216,35 @@ export default function AnalyticsPage() {
       {/* Category Breakdown & Trend Chart */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Category Breakdown */}
-        <Card title="Desglose por categoría (gastos)" padding="md">
+        <Card title="Desglose por categoria (gastos)" padding="md">
           {breakdown.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            <p className="py-4 text-center text-sm text-text-secondary">
               Sin datos para este mes
             </p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {breakdown.map((cat) => (
-                <div key={cat.categoryId} className="space-y-1">
+                <div key={cat.categoryId} className="space-y-1.5">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <div
                         className="h-3 w-3 rounded-full"
                         style={{ backgroundColor: cat.categoryColor }}
                       />
-                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                      <span className="font-medium text-text-primary">
                         {cat.categoryName}
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-gray-500 dark:text-gray-400">
+                      <span className="text-text-secondary">
                         {formatCurrency(cat.total)}
                       </span>
-                      <span className="w-12 text-right text-xs font-medium text-gray-400 dark:text-gray-500">
+                      <span className="w-12 text-right text-xs font-semibold text-text-tertiary">
                         {(cat.percentage ?? 0).toFixed(1)}%
                       </span>
                     </div>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-surface-tertiary">
                     <div
                       className="h-2 rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(cat.percentage, 100)}%`, backgroundColor: cat.categoryColor }}
@@ -221,9 +257,9 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Trend Chart */}
-        <Card title="Tendencia (últimos 6 meses)" padding="md">
+        <Card title="Tendencia (ultimos 6 meses)" padding="md">
           {trendChartData.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            <p className="py-4 text-center text-sm text-text-secondary">
               Sin datos de tendencia
             </p>
           ) : (
@@ -235,15 +271,15 @@ export default function AnalyticsPage() {
       {/* Recommendations */}
       <div className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Recomendaciones</h2>
+          <h2 className="text-lg font-semibold text-text-primary">Recomendaciones</h2>
           <div className="flex items-center gap-3">
-            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex overflow-hidden rounded-lg border border-border-primary">
               <button
                 onClick={() => setRecFilter('all')}
                 className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                   recFilter === 'all'
-                    ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100'
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                    ? 'bg-surface-tertiary text-text-primary'
+                    : 'text-text-tertiary hover:text-text-secondary'
                 }`}
               >
                 Todas
@@ -252,11 +288,11 @@ export default function AnalyticsPage() {
                 onClick={() => setRecFilter('unread')}
                 className={`px-3 py-1.5 text-xs font-medium transition-colors ${
                   recFilter === 'unread'
-                    ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100'
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                    ? 'bg-surface-tertiary text-text-primary'
+                    : 'text-text-tertiary hover:text-text-secondary'
                 }`}
               >
-                No leídas
+                No leidas
               </button>
             </div>
             <Button
@@ -284,24 +320,17 @@ export default function AnalyticsPage() {
               return (
                 <div
                   key={rec.id}
-                  className={`flex items-start gap-4 rounded-xl border p-4 transition-colors ${
-                    rec.isRead
-                      ? 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
-                      : 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
-                  }`}
+                  className={`flex items-start gap-4 rounded-xl border p-4 shadow-card transition-colors ${getSeverityBorderClass(rec.severity, rec.isRead)}`}
                 >
-                  <div className={`mt-0.5 shrink-0 ${
-                    rec.severity === 'INFO' ? 'text-blue-500' :
-                    rec.severity === 'WARNING' ? 'text-amber-500' : 'text-red-500'
-                  }`}>
+                  <div className={`mt-0.5 shrink-0 ${getSeverityIconClass(rec.severity)}`}>
                     {config.icon}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <Badge variant={config.variant}>{config.label}</Badge>
                     </div>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{rec.message}</p>
-                    <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                    <p className="mt-1 text-sm text-text-secondary">{rec.message}</p>
+                    <p className="mt-1 text-xs text-text-tertiary">
                       {new Date(rec.createdAt).toLocaleDateString('es-ES')}
                     </p>
                   </div>
@@ -309,9 +338,9 @@ export default function AnalyticsPage() {
                     <button
                       onClick={() => handleMarkRead(rec.id)}
                       disabled={markingReadId === rec.id}
-                      className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                      aria-label="Marcar como leída"
-                      title="Marcar como leída"
+                      className="shrink-0 rounded-lg p-1.5 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary disabled:opacity-50 transition-colors"
+                      aria-label="Marcar como leida"
+                      title="Marcar como leida"
                     >
                       <HiCheck className="h-5 w-5" />
                     </button>

@@ -97,7 +97,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-xs dark:border-gray-700 dark:bg-gray-800">
           <h2 className="mb-6 text-center text-lg font-semibold text-gray-900 dark:text-white">
             Crear Cuenta
           </h2>

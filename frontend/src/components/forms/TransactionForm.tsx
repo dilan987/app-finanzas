@@ -133,108 +133,99 @@ export default function TransactionForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
       {/* Type Toggle */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setType('INCOME')}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-medium transition-colors ${
-            type === 'INCOME'
-              ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-900/30 dark:text-emerald-400'
-              : 'border-gray-200 text-gray-500 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600'
-          }`}
-        >
-          <HiArrowTrendingUp className="h-5 w-5" />
-          Ingreso
-        </button>
-        <button
-          type="button"
-          onClick={() => setType('EXPENSE')}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-medium transition-colors ${
-            type === 'EXPENSE'
-              ? 'border-red-500 bg-red-50 text-red-700 dark:border-red-400 dark:bg-red-900/30 dark:text-red-400'
-              : 'border-gray-200 text-gray-500 hover:border-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600'
-          }`}
-        >
-          <HiArrowTrendingDown className="h-5 w-5" />
-          Gasto
-        </button>
+      <div>
+        <label className="label font-semibold">Tipo de transaccion</label>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setType('INCOME')}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all ${
+              type === 'INCOME'
+                ? 'border-income bg-income-bg text-income dark:border-income-light dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light'
+                : 'border-border-primary bg-surface-card text-text-tertiary hover:border-border-secondary hover:text-text-secondary'
+            }`}
+          >
+            <HiArrowTrendingUp className="h-5 w-5" />
+            Ingreso
+          </button>
+          <button
+            type="button"
+            onClick={() => setType('EXPENSE')}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all ${
+              type === 'EXPENSE'
+                ? 'border-expense bg-expense-bg text-expense dark:border-expense-light dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light'
+                : 'border-border-primary bg-surface-card text-text-tertiary hover:border-border-secondary hover:text-text-secondary'
+            }`}
+          >
+            <HiArrowTrendingDown className="h-5 w-5" />
+            Gasto
+          </button>
+        </div>
       </div>
 
       {/* Amount */}
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Monto
-        </label>
-        <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-lg font-medium text-gray-400">
-            $
-          </span>
-          <input
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            min="0"
-            placeholder="0"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            disabled={loading}
-            className={`block w-full rounded-lg border bg-white py-4 pl-10 pr-4 text-2xl font-bold text-gray-900 placeholder-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-600 ${
-              errors.amount
-                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30'
-                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/30 dark:border-gray-600'
-            }`}
-          />
-        </div>
-        {errors.amount && (
-          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.amount}</p>
-        )}
+      <Input
+        label="Monto"
+        type="number"
+        inputMode="decimal"
+        step="0.01"
+        min="0"
+        placeholder="0.00"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        disabled={loading}
+        error={errors.amount}
+        icon={<span className="text-base font-semibold">$</span>}
+        className="text-lg font-bold"
+      />
+
+      {/* Category & Description */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Select
+          label="Categoria"
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          options={filteredCategories.map((c) => ({
+            value: c.id,
+            label: c.name,
+            icon: c.icon,
+          }))}
+          placeholder="Selecciona una categoria"
+          error={errors.categoryId}
+          disabled={loading}
+        />
+
+        <Input
+          label="Descripcion"
+          placeholder="Descripcion de la transaccion"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          error={errors.description}
+          disabled={loading}
+        />
       </div>
 
-      {/* Category */}
-      <Select
-        label="Categoria"
-        value={categoryId}
-        onChange={(e) => setCategoryId(e.target.value)}
-        options={filteredCategories.map((c) => ({
-          value: c.id,
-          label: c.name,
-          icon: c.icon,
-        }))}
-        placeholder="Selecciona una categoria"
-        error={errors.categoryId}
-        disabled={loading}
-      />
+      {/* Date & Payment Method */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <DatePicker
+          label="Fecha"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          error={errors.date}
+          disabled={loading}
+        />
 
-      {/* Description */}
-      <Input
-        label="Descripcion"
-        placeholder="Descripcion de la transaccion"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        error={errors.description}
-        disabled={loading}
-      />
-
-      {/* Date */}
-      <DatePicker
-        label="Fecha"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        error={errors.date}
-        disabled={loading}
-      />
-
-      {/* Payment Method */}
-      <Select
-        label="Metodo de pago"
-        value={paymentMethod}
-        onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-        options={PAYMENT_METHODS.map((pm) => ({
-          value: pm.value,
-          label: pm.label,
-        }))}
-        disabled={loading}
-      />
+        <Select
+          label="Metodo de pago"
+          value={paymentMethod}
+          onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+          options={PAYMENT_METHODS.map((pm) => ({
+            value: pm.value,
+            label: pm.label,
+          }))}
+          disabled={loading}
+        />
+      </div>
 
       {/* Currency */}
       <Select

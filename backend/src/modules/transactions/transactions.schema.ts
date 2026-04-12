@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createTransactionSchema = z.object({
   type: z.enum(['INCOME', 'EXPENSE'], {
-    errorMap: () => ({ message: 'Type must be INCOME or EXPENSE' }),
+    message: 'Type must be INCOME or EXPENSE',
   }),
   amount: z
     .number()
@@ -15,9 +15,7 @@ export const createTransactionSchema = z.object({
     .optional(),
   date: z.string().refine((val) => !isNaN(Date.parse(val)), { message: 'Must be a valid date string' }),
   paymentMethod: z.enum(['CASH', 'DEBIT_CARD', 'CREDIT_CARD', 'TRANSFER'], {
-    errorMap: () => ({
-      message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
-    }),
+    message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
   }),
   currency: z.string().length(3, 'Currency must be a 3-letter code').default('COP'),
   categoryId: z.string().min(1, 'Category ID is required'),
@@ -26,7 +24,7 @@ export const createTransactionSchema = z.object({
 export const updateTransactionSchema = z.object({
   type: z
     .enum(['INCOME', 'EXPENSE'], {
-      errorMap: () => ({ message: 'Type must be INCOME or EXPENSE' }),
+      message: 'Type must be INCOME or EXPENSE',
     })
     .optional(),
   amount: z
@@ -46,9 +44,7 @@ export const updateTransactionSchema = z.object({
     .optional(),
   paymentMethod: z
     .enum(['CASH', 'DEBIT_CARD', 'CREDIT_CARD', 'TRANSFER'], {
-      errorMap: () => ({
-        message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
-      }),
+      message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
     })
     .optional(),
   currency: z.string().length(3, 'Currency must be a 3-letter code').optional(),
@@ -58,7 +54,7 @@ export const updateTransactionSchema = z.object({
 export const getTransactionsQuerySchema = z.object({
   type: z
     .enum(['INCOME', 'EXPENSE'], {
-      errorMap: () => ({ message: 'Type must be INCOME or EXPENSE' }),
+      message: 'Type must be INCOME or EXPENSE',
     })
     .optional(),
   categoryId: z.string().min(1, 'Category ID is required').optional(),
@@ -72,9 +68,7 @@ export const getTransactionsQuerySchema = z.object({
     .optional(),
   paymentMethod: z
     .enum(['CASH', 'DEBIT_CARD', 'CREDIT_CARD', 'TRANSFER'], {
-      errorMap: () => ({
-        message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
-      }),
+      message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
     })
     .optional(),
   minAmount: z.coerce
@@ -90,12 +84,12 @@ export const getTransactionsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   sortBy: z
     .enum(['date', 'amount', 'createdAt'], {
-      errorMap: () => ({ message: 'Sort by must be date, amount, or createdAt' }),
+      message: 'Sort by must be date, amount, or createdAt',
     })
     .default('date'),
   sortOrder: z
     .enum(['asc', 'desc'], {
-      errorMap: () => ({ message: 'Sort order must be asc or desc' }),
+      message: 'Sort order must be asc or desc',
     })
     .default('desc'),
 });

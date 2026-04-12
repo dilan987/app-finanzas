@@ -17,15 +17,17 @@ export default function EmptyState({
   onAction,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
+    <div className="flex flex-col items-center justify-center py-16 text-center">
       {icon && (
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500">
+        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-tertiary text-text-tertiary">
           <span className="text-3xl">{icon}</span>
         </div>
       )}
-      <h3 className="mb-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+      <h3 className="mb-1.5 text-lg font-semibold text-text-primary">{title}</h3>
       {description && (
-        <p className="mb-6 max-w-sm text-sm text-gray-500 dark:text-gray-400">{description}</p>
+        <p className="mb-8 max-w-sm text-sm leading-relaxed text-text-secondary">
+          {description}
+        </p>
       )}
       {actionLabel && onAction && (
         <Button variant="primary" onClick={onAction}>
