@@ -69,8 +69,8 @@ export async function generatePDF(userId: string, month: number, year: number): 
     ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 10000) / 100
     : 0;
 
-  // Fetch category names for top categories
-  const categoryIds = topCategories.map((c) => c.categoryId);
+  // Fetch category names for top categories (filter null categoryIds from transfers)
+  const categoryIds = topCategories.map((c) => c.categoryId).filter((id): id is string => id !== null);
   const categories = await prisma.category.findMany({
     where: { id: { in: categoryIds } },
   });
@@ -156,7 +156,7 @@ export async function generatePDF(userId: string, month: number, year: number): 
         const cat = topCategories[i];
         const amount = cat._sum.amount?.toNumber() ?? 0;
         const pct = totalExpenses > 0 ? Math.round((amount / totalExpenses) * 10000) / 100 : 0;
-        const catName = categoryMap.get(cat.categoryId) ?? 'Sin categoría';
+        const catName = (cat.categoryId ? categoryMap.get(cat.categoryId) : null) ?? 'Sin categoría';
 
         if (i % 2 === 0) {
           doc.rect(45, catRowY - 4, 500, 18).fill('#F9FAFB').stroke();
@@ -239,7 +239,7 @@ export async function generateCSV(userId: string, filters: CSVFilters): Promise<
   const rows = transactions.map((t) => {
     const date = new Date(t.date).toLocaleDateString('es-CO');
     const type = TYPE_LABELS[t.type] ?? t.type;
-    const categoryName = escapeCSV(t.category.name);
+    const categoryName = escapeCSV(t.category?.name ?? 'Transferencia');
     const description = escapeCSV(t.description ?? '');
     const amount = t.amount.toNumber().toString();
     const paymentMethod = PAYMENT_METHOD_LABELS[t.paymentMethod] ?? t.paymentMethod;

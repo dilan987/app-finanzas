@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   HiHome,
+  HiBuildingLibrary,
   HiArrowsRightLeft,
   HiTag,
   HiCalculator,
@@ -22,6 +23,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <HiHome className="h-5 w-5" /> },
+  { label: 'Cuentas', path: '/accounts', icon: <HiBuildingLibrary className="h-5 w-5" /> },
   { label: 'Transacciones', path: '/transactions', icon: <HiArrowsRightLeft className="h-5 w-5" /> },
   { label: 'Categorias', path: '/categories', icon: <HiTag className="h-5 w-5" /> },
   { label: 'Presupuestos', path: '/budgets', icon: <HiCalculator className="h-5 w-5" /> },

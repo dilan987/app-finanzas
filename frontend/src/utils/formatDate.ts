@@ -90,11 +90,8 @@ export function formatRelativeDate(value: string | Date): string {
   return years === 1 ? 'Hace 1 año' : `Hace ${years} años`;
 }
 
-/** ISO date string "YYYY-MM-DD" for form inputs. */
+/** ISO date string "YYYY-MM-DD" for form inputs (always UTC to avoid timezone shift). */
 export function toISODateString(value: string | Date): string {
   const d = toDate(value);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return d.toISOString().split('T')[0]!;
 }

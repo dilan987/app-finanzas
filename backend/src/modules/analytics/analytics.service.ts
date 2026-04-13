@@ -169,17 +169,21 @@ export async function getCategoryBreakdown(
 
   const previousMap = new Map<string, number>();
   for (const item of previousExpenses) {
-    previousMap.set(item.categoryId, item._sum.amount?.toNumber() ?? 0);
+    if (item.categoryId) {
+      previousMap.set(item.categoryId, item._sum.amount?.toNumber() ?? 0);
+    }
   }
 
-  const categoryIds = currentExpenses.map((item) => item.categoryId);
+  // Filter out null categoryIds (transfers don't have categories)
+  const withCategory = currentExpenses.filter((item): item is typeof item & { categoryId: string } => item.categoryId !== null);
+  const categoryIds = withCategory.map((item) => item.categoryId);
   const categories = await prisma.category.findMany({
     where: { id: { in: categoryIds } },
   });
 
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
-  const breakdown: CategoryBreakdownItem[] = currentExpenses
+  const breakdown: CategoryBreakdownItem[] = withCategory
     .map((item) => {
       const totalSpent = item._sum.amount?.toNumber() ?? 0;
       const category = categoryMap.get(item.categoryId);
@@ -292,11 +296,12 @@ export async function generateRecommendations(userId: string): Promise<number> {
       where: { userId, type: TransactionType.EXPENSE, date: { gte: start, lte: end } },
       _sum: { amount: true },
     });
-    const categoryIds = categoryExpenses.map((c) => c.categoryId);
+    const catWithId = categoryExpenses.filter((c): c is typeof c & { categoryId: string } => c.categoryId !== null);
+    const categoryIds = catWithId.map((c) => c.categoryId);
     const categories = await prisma.category.findMany({ where: { id: { in: categoryIds } } });
     const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
-    for (const catExpense of categoryExpenses) {
+    for (const catExpense of catWithId) {
       const spent = catExpense._sum.amount?.toNumber() ?? 0;
       const pct = Math.round((spent / current.totalIncome) * 100);
       if (pct > 30) {
@@ -374,7 +379,7 @@ export async function generateRecommendations(userId: string): Promise<number> {
     orderBy: { date: 'asc' },
   });
   if (recurringTransactions.length > 0) {
-    const recurringCategoryIds = [...new Set(recurringTransactions.map((t) => t.categoryId))];
+    const recurringCategoryIds = [...new Set(recurringTransactions.map((t) => t.categoryId).filter((id): id is string => id !== null))];
     for (const catId of recurringCategoryIds) {
       const threeMonthRange = getMonthRange(threeMonthsAgo.month, threeMonthsAgo.year);
       const currentRange = getMonthRange(currentMonth, currentYear);

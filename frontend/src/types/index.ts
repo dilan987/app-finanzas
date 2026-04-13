@@ -1,8 +1,18 @@
 // ── Enum-like union types (match backend Prisma enums exactly) ─────
 
-export type TransactionType = 'INCOME' | 'EXPENSE';
+export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
 
 export type PaymentMethod = 'CASH' | 'DEBIT_CARD' | 'CREDIT_CARD' | 'TRANSFER';
+
+export type AccountType =
+  | 'CHECKING'
+  | 'SAVINGS'
+  | 'CREDIT_CARD'
+  | 'CASH'
+  | 'NEOBANK'
+  | 'INVESTMENT'
+  | 'LOAN'
+  | 'OTHER';
 
 export type Frequency = 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'YEARLY';
 
@@ -11,6 +21,35 @@ export type InvestmentType = 'STOCKS' | 'CDT' | 'CRYPTO' | 'FUND' | 'FOREX' | 'O
 export type Severity = 'INFO' | 'WARNING' | 'CRITICAL';
 
 // ── Domain models (match backend Prisma schema) ───────────────────
+
+export interface Account {
+  id: string;
+  name: string;
+  type: AccountType;
+  currency: string;
+  initialBalance: number;
+  currentBalance: number;
+  institutionName: string | null;
+  color: string;
+  icon: string;
+  isActive: boolean;
+  includeInBudget: boolean;
+  includeInTotal: boolean;
+  sortOrder: number;
+  notes: string | null;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccountSummary {
+  accounts: Account[];
+  onBudget: Account[];
+  offBudget: Account[];
+  netWorth: number;
+  onBudgetTotal: number;
+  offBudgetTotal: number;
+}
 
 export interface User {
   id: string;
@@ -41,10 +80,14 @@ export interface Transaction {
   date: string;
   paymentMethod: PaymentMethod;
   currency: string;
-  categoryId: string;
+  categoryId: string | null;
   category?: Category;
   userId: string;
   recurringId: string | null;
+  accountId: string | null;
+  account?: Account;
+  transferAccountId: string | null;
+  transferAccount?: Account;
   createdAt: string;
   updatedAt: string;
 }
@@ -81,6 +124,8 @@ export interface RecurringTransaction {
   isActive: boolean;
   paymentMethod: PaymentMethod;
   currency: string;
+  accountId: string | null;
+  account?: Account;
   createdAt: string;
   updatedAt: string;
 }
@@ -139,6 +184,7 @@ export interface TransactionFilters {
   limit?: number;
   type?: TransactionType;
   categoryId?: string;
+  accountId?: string;
   paymentMethod?: PaymentMethod;
   startDate?: string;
   endDate?: string;
@@ -147,6 +193,12 @@ export interface TransactionFilters {
   search?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+}
+
+export interface AccountFilters {
+  isActive?: boolean;
+  type?: AccountType;
+  includeInBudget?: boolean;
 }
 
 export interface BudgetFilters {
@@ -244,7 +296,9 @@ export interface CreateTransactionData {
   description?: string;
   date: string;
   paymentMethod: PaymentMethod;
-  categoryId: string;
+  categoryId?: string | null;
+  accountId?: string | null;
+  transferAccountId?: string | null;
   currency?: string;
 }
 
@@ -281,6 +335,7 @@ export interface CreateRecurringData {
   nextExecutionDate: string;
   paymentMethod: PaymentMethod;
   categoryId: string;
+  accountId?: string | null;
   currency?: string;
 }
 
@@ -325,4 +380,24 @@ export interface MonthlyStats {
   balance: number;
   incomeCount: number;
   expenseCount: number;
+}
+
+// ── Account DTOs ─────────────────────────────────────────────────
+
+export interface CreateAccountData {
+  name: string;
+  type: AccountType;
+  currency?: string;
+  initialBalance?: number;
+  institutionName?: string | null;
+  color?: string;
+  icon?: string;
+  includeInBudget?: boolean;
+  includeInTotal?: boolean;
+  notes?: string | null;
+}
+
+export interface UpdateAccountData extends Partial<CreateAccountData> {
+  isActive?: boolean;
+  sortOrder?: number;
 }

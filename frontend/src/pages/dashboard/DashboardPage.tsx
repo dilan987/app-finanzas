@@ -18,6 +18,7 @@ import IncomeExpenseBarChart from '../../components/charts/IncomeExpenseBarChart
 import CategoryPieChart from '../../components/charts/CategoryPieChart';
 import TrendLineChart from '../../components/charts/TrendLineChart';
 import BudgetProgressList from '../../components/charts/BudgetProgressList';
+import AccountsSummaryPanel from '../../components/accounts/AccountsSummaryPanel';
 
 import { analyticsApi } from '../../api/analytics.api';
 import { transactionsApi } from '../../api/transactions.api';
@@ -128,6 +129,11 @@ export default function DashboardPage() {
           Resumen financiero de {formatMonthYear(currentMonth, currentYear)}
         </p>
       </div>
+
+      {/* ═══ ALWAYS-VISIBLE: Accounts Summary (not filtered by month) ═══ */}
+      <AccountsSummaryPanel />
+
+      {/* ═══ MONTH-FILTERED: Stats, Charts, Budget, Transactions ═══ */}
 
       {/* Stat Cards Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -241,7 +247,7 @@ export default function DashboardPage() {
                     Monto
                   </th>
                   <th className="hidden pb-3 text-left font-medium text-gray-500 dark:text-gray-400 sm:table-cell">
-                    Metodo
+                    Cuenta
                   </th>
                 </tr>
               </thead>
@@ -260,27 +266,37 @@ export default function DashboardPage() {
                           />
                         )}
                         <span className="text-gray-700 dark:text-gray-300">
-                          {tx.category?.name ?? 'Sin categoria'}
+                          {tx.type === 'TRANSFER'
+                            ? 'Transferencia'
+                            : tx.category?.name ?? 'Sin categoria'}
                         </span>
                       </div>
                     </td>
                     <td className="max-w-[200px] truncate py-3 text-gray-700 dark:text-gray-300">
-                      {tx.description}
+                      {tx.type === 'TRANSFER' && tx.account && tx.transferAccount
+                        ? `${tx.account.name} → ${tx.transferAccount.name}`
+                        : tx.description}
                     </td>
                     <td className="py-3 text-right">
                       <span
                         className={`font-medium ${
                           tx.type === 'INCOME'
                             ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-red-600 dark:text-red-400'
+                            : tx.type === 'TRANSFER'
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-red-600 dark:text-red-400'
                         }`}
                       >
-                        {tx.type === 'INCOME' ? '+' : '-'}
+                        {tx.type === 'INCOME' ? '+' : tx.type === 'TRANSFER' ? '' : '-'}
                         {formatCurrency(tx.amount)}
                       </span>
                     </td>
                     <td className="hidden py-3 text-gray-500 dark:text-gray-400 sm:table-cell">
-                      <Badge variant="info">{getPaymentMethodLabel(tx.paymentMethod)}</Badge>
+                      {tx.account ? (
+                        <Badge variant="info">{tx.account.name}</Badge>
+                      ) : (
+                        <Badge variant="info">{getPaymentMethodLabel(tx.paymentMethod)}</Badge>
+                      )}
                     </td>
                   </tr>
                 ))}

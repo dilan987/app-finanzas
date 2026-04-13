@@ -139,6 +139,30 @@ export async function remove(id: string, userId: string) {
   });
 }
 
+/**
+ * Build a WHERE clause that only includes transactions from on-budget accounts.
+ * Transactions with null accountId are treated as on-budget (backward compatible).
+ */
+async function buildOnBudgetFilter(userId: string): Promise<Prisma.TransactionWhereInput> {
+  const offBudgetAccountIds = await prisma.account.findMany({
+    where: { userId, includeInBudget: false },
+    select: { id: true },
+  });
+
+  if (offBudgetAccountIds.length === 0) {
+    return {};
+  }
+
+  // Exclude transactions that belong to off-budget accounts.
+  // Transactions with null accountId pass through (backward compatible).
+  return {
+    OR: [
+      { accountId: null },
+      { account: { includeInBudget: true } },
+    ],
+  };
+}
+
 export async function getMonthSummary(userId: string, month: number, year: number) {
   let budgets = await prisma.budget.findMany({
     where: { userId, month, year },
@@ -197,6 +221,9 @@ export async function getMonthSummary(userId: string, month: number, year: numbe
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
+  // Get on-budget filter for this user
+  const onBudgetFilter = await buildOnBudgetFilter(userId);
+
   const summary = await Promise.all(
     budgets.map(async (budget) => {
       const budgetAmount = budget.amount.toNumber();
@@ -209,6 +236,7 @@ export async function getMonthSummary(userId: string, month: number, year: numbe
             type: budget.type as TransactionType,
             categoryId: budget.categoryId,
             date: { gte: startDate, lte: endDate },
+            ...onBudgetFilter,
           },
           _sum: { amount: true },
         });
@@ -239,14 +267,24 @@ export async function getMonthSummary(userId: string, month: number, year: numbe
   const totalProjectedIncome = incomeItems.reduce((acc, i) => acc + i.budgetAmount, 0);
   const totalProjectedExpenses = expenseItems.reduce((acc, i) => acc + i.budgetAmount, 0);
 
-  // Get total actual transactions for the month
+  // Get total actual transactions for the month (on-budget only)
   const [totalIncomeResult, totalExpensesResult] = await Promise.all([
     prisma.transaction.aggregate({
-      where: { userId, type: TransactionType.INCOME, date: { gte: startDate, lte: endDate } },
+      where: {
+        userId,
+        type: TransactionType.INCOME,
+        date: { gte: startDate, lte: endDate },
+        ...onBudgetFilter,
+      },
       _sum: { amount: true },
     }),
     prisma.transaction.aggregate({
-      where: { userId, type: TransactionType.EXPENSE, date: { gte: startDate, lte: endDate } },
+      where: {
+        userId,
+        type: TransactionType.EXPENSE,
+        date: { gte: startDate, lte: endDate },
+        ...onBudgetFilter,
+      },
       _sum: { amount: true },
     }),
   ]);
@@ -266,6 +304,7 @@ export async function getMonthSummary(userId: string, month: number, year: numbe
         type: TransactionType.EXPENSE,
         date: { gte: startDate, lte: endDate },
         categoryId: { notIn: plannedExpenseCategoryIds },
+        ...onBudgetFilter,
       },
       _sum: { amount: true },
     });

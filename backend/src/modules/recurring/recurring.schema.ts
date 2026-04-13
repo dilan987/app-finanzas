@@ -24,6 +24,7 @@ export const createRecurringSchema = z.object({
     message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
   }),
   currency: z.string().length(3, 'Currency must be a 3-letter code').default('COP'),
+  accountId: z.string().min(1, 'Account ID is required').optional().nullable(),
 });
 
 export const updateRecurringSchema = z.object({
@@ -59,6 +60,7 @@ export const updateRecurringSchema = z.object({
     })
     .optional(),
   currency: z.string().length(3, 'Currency must be a 3-letter code').optional(),
+  accountId: z.string().min(1, 'Account ID is required').nullable().optional(),
 });
 
 export const toggleActiveSchema = z.object({

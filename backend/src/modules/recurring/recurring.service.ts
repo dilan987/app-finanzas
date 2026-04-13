@@ -29,7 +29,7 @@ export async function getAll(userId: string, filters: GetRecurringQuery) {
   const [recurringTransactions, total] = await Promise.all([
     prisma.recurringTransaction.findMany({
       where,
-      include: { category: true },
+      include: { category: true, account: true },
       orderBy: { nextExecutionDate: 'asc' },
       skip,
       take,
@@ -45,7 +45,7 @@ export async function getAll(userId: string, filters: GetRecurringQuery) {
 export async function getById(id: string, userId: string) {
   const recurring = await prisma.recurringTransaction.findUnique({
     where: { id },
-    include: { category: true },
+    include: { category: true, account: true },
   });
 
   if (!recurring) {
@@ -72,6 +72,14 @@ export async function create(userId: string, data: CreateRecurringInput) {
     throw new NotFoundError('Category');
   }
 
+  // Validate account if provided
+  if (data.accountId) {
+    const account = await prisma.account.findUnique({ where: { id: data.accountId } });
+    if (!account || account.userId !== userId) {
+      throw new NotFoundError('Account');
+    }
+  }
+
   const recurring = await prisma.recurringTransaction.create({
     data: {
       type: data.type,
@@ -83,8 +91,9 @@ export async function create(userId: string, data: CreateRecurringInput) {
       nextExecutionDate: new Date(data.nextExecutionDate),
       paymentMethod: data.paymentMethod,
       currency: data.currency,
+      accountId: data.accountId ?? null,
     },
-    include: { category: true },
+    include: { category: true, account: true },
   });
 
   return recurring;
@@ -117,6 +126,13 @@ export async function update(id: string, userId: string, data: UpdateRecurringIn
     }
   }
 
+  if (data.accountId) {
+    const account = await prisma.account.findUnique({ where: { id: data.accountId } });
+    if (!account || account.userId !== userId) {
+      throw new NotFoundError('Account');
+    }
+  }
+
   const updateData: Prisma.RecurringTransactionUpdateInput = {};
 
   if (data.type !== undefined) updateData.type = data.type;
@@ -131,11 +147,18 @@ export async function update(id: string, userId: string, data: UpdateRecurringIn
   if (data.categoryId !== undefined) {
     updateData.category = { connect: { id: data.categoryId } };
   }
+  if (data.accountId !== undefined) {
+    if (data.accountId === null) {
+      updateData.account = { disconnect: true };
+    } else {
+      updateData.account = { connect: { id: data.accountId } };
+    }
+  }
 
   const updated = await prisma.recurringTransaction.update({
     where: { id },
     data: updateData,
-    include: { category: true },
+    include: { category: true, account: true },
   });
 
   return updated;
@@ -157,7 +180,7 @@ export async function toggleActive(id: string, userId: string, isActive: boolean
   const updated = await prisma.recurringTransaction.update({
     where: { id },
     data: { isActive },
-    include: { category: true },
+    include: { category: true, account: true },
   });
 
   return updated;
@@ -205,6 +228,13 @@ function calculateNextExecutionDate(currentDate: Date, frequency: Frequency): Da
   return next;
 }
 
+/**
+ * Returns the balance delta to apply to an account for a given transaction type.
+ */
+function getBalanceDelta(type: string, amount: number): number {
+  return type === 'INCOME' ? amount : -amount;
+}
+
 export async function processRecurring() {
   const now = new Date();
 
@@ -224,6 +254,7 @@ export async function processRecurring() {
   for (const recurring of dueRecurring) {
     try {
       await prisma.$transaction(async (tx) => {
+        // Create the transaction, inheriting accountId from the recurring template
         await tx.transaction.create({
           data: {
             type: recurring.type,
@@ -235,8 +266,18 @@ export async function processRecurring() {
             categoryId: recurring.categoryId,
             userId: recurring.userId,
             recurringId: recurring.id,
+            accountId: recurring.accountId,
           },
         });
+
+        // Update account balance if the recurring transaction has an account
+        if (recurring.accountId) {
+          const delta = getBalanceDelta(recurring.type, recurring.amount.toNumber());
+          await tx.account.update({
+            where: { id: recurring.accountId },
+            data: { currentBalance: { increment: delta } },
+          });
+        }
 
         const nextDate = calculateNextExecutionDate(
           recurring.nextExecutionDate,

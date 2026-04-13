@@ -36,7 +36,7 @@ export const useUiStore = create<UiState>()(
   persist(
     (set, get) => ({
       theme: 'light',
-      sidebarOpen: true,
+      sidebarOpen: false,
       sidebarCollapsed: false,
       currentMonth: now.getMonth() + 1,
       currentYear: now.getFullYear(),

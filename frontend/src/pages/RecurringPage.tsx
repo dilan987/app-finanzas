@@ -18,12 +18,14 @@ import DatePicker from '../components/ui/DatePicker';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { recurringApi } from '../api/recurring.api';
 import { categoriesApi } from '../api/categories.api';
+import { accountsApi } from '../api/accounts.api';
 import { formatCurrency } from '../utils/formatCurrency';
 import { formatShortDate } from '../utils/formatDate';
 import { FREQUENCIES, PAYMENT_METHODS } from '../utils/constants';
 import type {
   RecurringTransaction,
   Category,
+  Account,
   TransactionType,
   CreateRecurringData,
   UpdateRecurringData,
@@ -39,6 +41,7 @@ interface RecurringFormState {
   frequency: Frequency;
   nextExecutionDate: string;
   paymentMethod: PaymentMethod;
+  accountId: string;
 }
 
 const initialForm: RecurringFormState = {
@@ -49,6 +52,7 @@ const initialForm: RecurringFormState = {
   frequency: 'MONTHLY',
   nextExecutionDate: new Date().toISOString().split('T')[0] ?? '',
   paymentMethod: 'CASH',
+  accountId: '',
 };
 
 function getFrequencyLabel(freq: Frequency): string {
@@ -66,15 +70,18 @@ export default function RecurringPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   const loadData = useCallback(async () => {
     try {
-      const [recRes, catRes] = await Promise.all([
+      const [recRes, catRes, accRes] = await Promise.all([
         recurringApi.getAll(),
         categoriesApi.getAll(),
+        accountsApi.getAll({ isActive: true }),
       ]);
       setItems(recRes.data.data);
       setCategories(catRes.data.data);
+      setAccounts(accRes.data.data);
     } catch {
       toast.error('Error al cargar recurrencias');
     } finally {
@@ -104,6 +111,7 @@ export default function RecurringPage() {
       frequency: item.frequency,
       nextExecutionDate: item.nextExecutionDate?.split('T')[0] ?? '',
       paymentMethod: item.paymentMethod,
+      accountId: item.accountId ?? '',
     });
     setModalOpen(true);
   };
@@ -142,6 +150,7 @@ export default function RecurringPage() {
           frequency: form.frequency,
           nextExecutionDate: form.nextExecutionDate,
           paymentMethod: form.paymentMethod,
+          accountId: form.accountId || null,
         };
         const res = await recurringApi.update(editingId, data);
         setItems((prev) => prev.map((i) => (i.id === editingId ? res.data.data : i)));
@@ -155,6 +164,7 @@ export default function RecurringPage() {
           frequency: form.frequency,
           nextExecutionDate: form.nextExecutionDate,
           paymentMethod: form.paymentMethod,
+          accountId: form.accountId || null,
         };
         const res = await recurringApi.create(data);
         setItems((prev) => [...prev, res.data.data]);
@@ -245,6 +255,7 @@ export default function RecurringPage() {
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
                       {item.category?.name && <span>{item.category.name}</span>}
                       <Badge variant="neutral">{getFrequencyLabel(item.frequency)}</Badge>
+                      {item.account && <Badge variant="info">{item.account.name}</Badge>}
                       <span>Proxima: {formatShortDate(item.nextExecutionDate)}</span>
                     </div>
                   </div>
@@ -365,6 +376,17 @@ export default function RecurringPage() {
               onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value as PaymentMethod }))}
             />
           </div>
+          {accounts.length > 0 && (
+            <Select
+              label="Cuenta"
+              options={[
+                { value: '', label: 'Sin cuenta' },
+                ...accounts.map((a) => ({ value: a.id, label: a.name })),
+              ]}
+              value={form.accountId}
+              onChange={(e) => setForm((f) => ({ ...f, accountId: e.target.value }))}
+            />
+          )}
           <DatePicker
             label="Proxima ejecucion"
             value={form.nextExecutionDate}

@@ -42,6 +42,7 @@ const TYPE_TABS: { value: TransactionType | ''; label: string }[] = [
   { value: '', label: 'Todas' },
   { value: 'INCOME', label: 'Ingresos' },
   { value: 'EXPENSE', label: 'Gastos' },
+  { value: 'TRANSFER', label: 'Transferencias' },
 ];
 
 export default function TransactionsPage() {
@@ -381,7 +382,9 @@ export default function TransactionsPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4 text-text-secondary">
-                      {tx.category?.name ?? 'Sin categoria'}
+                      {tx.type === 'TRANSFER'
+                        ? 'Transferencia'
+                        : tx.category?.name ?? 'Sin categoria'}
                     </td>
                     <td className="px-5 py-4 text-text-tertiary">
                       {formatShortDate(tx.date)}
@@ -392,10 +395,14 @@ export default function TransactionsPage() {
                     <td className="px-5 py-4 text-right">
                       <span
                         className={`font-semibold ${
-                          tx.type === 'INCOME' ? 'text-income' : 'text-expense'
+                          tx.type === 'INCOME'
+                            ? 'text-income'
+                            : tx.type === 'TRANSFER'
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-expense'
                         }`}
                       >
-                        {tx.type === 'INCOME' ? '+' : '-'}
+                        {tx.type === 'INCOME' ? '+' : tx.type === 'TRANSFER' ? '' : '-'}
                         {formatCurrency(tx.amount)}
                       </span>
                     </td>
@@ -508,6 +515,8 @@ export default function TransactionsPage() {
                   date: editingTransaction.date,
                   paymentMethod: editingTransaction.paymentMethod,
                   categoryId: editingTransaction.categoryId,
+                  accountId: editingTransaction.accountId,
+                  transferAccountId: editingTransaction.transferAccountId,
                 }
               : undefined
           }

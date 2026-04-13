@@ -8,6 +8,27 @@ import {
   GetTransactionsQuery,
 } from './transactions.schema';
 
+// ── Helpers for account balance updates ─────────────────────────────
+
+/**
+ * Returns the balance delta to apply to an account for a given transaction.
+ * Positive = account gains money, Negative = account loses money.
+ */
+function getBalanceDelta(type: TransactionType, amount: number): number {
+  switch (type) {
+    case 'INCOME':
+      return amount;
+    case 'EXPENSE':
+      return -amount;
+    case 'TRANSFER':
+      return -amount; // Source account loses money
+    default:
+      return 0;
+  }
+}
+
+// ── Queries ─────────────────────────────────────────────────────────
+
 export async function getAll(userId: string, filters: GetTransactionsQuery) {
   const { skip, take, page, limit } = getPaginationParams({
     page: filters.page,
@@ -24,6 +45,14 @@ export async function getAll(userId: string, filters: GetTransactionsQuery) {
 
   if (filters.categoryId) {
     where.categoryId = filters.categoryId;
+  }
+
+  if (filters.accountId) {
+    // Show transactions where this account is source OR destination
+    where.OR = [
+      { accountId: filters.accountId },
+      { transferAccountId: filters.accountId },
+    ];
   }
 
   if (filters.paymentMethod) {
@@ -64,7 +93,11 @@ export async function getAll(userId: string, filters: GetTransactionsQuery) {
   const [transactions, total] = await Promise.all([
     prisma.transaction.findMany({
       where,
-      include: { category: true },
+      include: {
+        category: true,
+        account: true,
+        transferAccount: true,
+      },
       orderBy,
       skip,
       take,
@@ -80,7 +113,11 @@ export async function getAll(userId: string, filters: GetTransactionsQuery) {
 export async function getById(id: string, userId: string) {
   const transaction = await prisma.transaction.findUnique({
     where: { id },
-    include: { category: true },
+    include: {
+      category: true,
+      account: true,
+      transferAccount: true,
+    },
   });
 
   if (!transaction) {
@@ -93,52 +130,11 @@ export async function getById(id: string, userId: string) {
 
   return transaction;
 }
+
+// ── Create ──────────────────────────────────────────────────────────
 
 export async function create(userId: string, data: CreateTransactionInput) {
-  // Verify category exists and is accessible to the user
-  const category = await prisma.category.findUnique({
-    where: { id: data.categoryId },
-  });
-
-  if (!category) {
-    throw new NotFoundError('Category');
-  }
-
-  if (!category.isDefault && category.userId !== userId) {
-    throw new ForbiddenError('You do not have access to this category');
-  }
-
-  const transaction = await prisma.transaction.create({
-    data: {
-      type: data.type,
-      amount: data.amount,
-      description: data.description,
-      date: new Date(data.date),
-      paymentMethod: data.paymentMethod,
-      currency: data.currency,
-      categoryId: data.categoryId,
-      userId,
-    },
-    include: { category: true },
-  });
-
-  return transaction;
-}
-
-export async function update(id: string, userId: string, data: UpdateTransactionInput) {
-  const transaction = await prisma.transaction.findUnique({
-    where: { id },
-  });
-
-  if (!transaction) {
-    throw new NotFoundError('Transaction');
-  }
-
-  if (transaction.userId !== userId) {
-    throw new NotFoundError('Transaction');
-  }
-
-  // If categoryId is being updated, verify the new category
+  // Validate category if provided (required for INCOME/EXPENSE)
   if (data.categoryId) {
     const category = await prisma.category.findUnique({
       where: { id: data.categoryId },
@@ -153,26 +149,202 @@ export async function update(id: string, userId: string, data: UpdateTransaction
     }
   }
 
-  const updateData: Prisma.TransactionUpdateInput = {};
-
-  if (data.type !== undefined) updateData.type = data.type;
-  if (data.amount !== undefined) updateData.amount = data.amount;
-  if (data.description !== undefined) updateData.description = data.description;
-  if (data.date !== undefined) updateData.date = new Date(data.date);
-  if (data.paymentMethod !== undefined) updateData.paymentMethod = data.paymentMethod;
-  if (data.currency !== undefined) updateData.currency = data.currency;
-  if (data.categoryId !== undefined) {
-    updateData.category = { connect: { id: data.categoryId } };
+  // Validate accounts if provided
+  if (data.accountId) {
+    const account = await prisma.account.findUnique({ where: { id: data.accountId } });
+    if (!account || account.userId !== userId) {
+      throw new NotFoundError('Account');
+    }
   }
 
-  const updated = await prisma.transaction.update({
-    where: { id },
-    data: updateData,
-    include: { category: true },
+  if (data.transferAccountId) {
+    const transferAccount = await prisma.account.findUnique({ where: { id: data.transferAccountId } });
+    if (!transferAccount || transferAccount.userId !== userId) {
+      throw new NotFoundError('Transfer account');
+    }
+  }
+
+  const amount = data.amount;
+
+  // Use a prisma transaction to atomically create + update balances
+  const transaction = await prisma.$transaction(async (tx) => {
+    const created = await tx.transaction.create({
+      data: {
+        type: data.type,
+        amount,
+        description: data.description,
+        date: new Date(data.date),
+        paymentMethod: data.paymentMethod,
+        currency: data.currency,
+        categoryId: data.categoryId ?? null,
+        accountId: data.accountId ?? null,
+        transferAccountId: data.transferAccountId ?? null,
+        userId,
+      },
+      include: {
+        category: true,
+        account: true,
+        transferAccount: true,
+      },
+    });
+
+    // Update source account balance
+    if (data.accountId) {
+      const delta = getBalanceDelta(data.type, amount);
+      await tx.account.update({
+        where: { id: data.accountId },
+        data: { currentBalance: { increment: delta } },
+      });
+    }
+
+    // Update destination account balance (transfers only)
+    if (data.type === 'TRANSFER' && data.transferAccountId) {
+      await tx.account.update({
+        where: { id: data.transferAccountId },
+        data: { currentBalance: { increment: amount } },
+      });
+    }
+
+    return created;
+  });
+
+  return transaction;
+}
+
+// ── Update ──────────────────────────────────────────────────────────
+
+export async function update(id: string, userId: string, data: UpdateTransactionInput) {
+  const existing = await prisma.transaction.findUnique({ where: { id } });
+
+  if (!existing) {
+    throw new NotFoundError('Transaction');
+  }
+
+  if (existing.userId !== userId) {
+    throw new NotFoundError('Transaction');
+  }
+
+  // Validate new category if being changed
+  if (data.categoryId) {
+    const category = await prisma.category.findUnique({
+      where: { id: data.categoryId },
+    });
+
+    if (!category) {
+      throw new NotFoundError('Category');
+    }
+
+    if (!category.isDefault && category.userId !== userId) {
+      throw new ForbiddenError('You do not have access to this category');
+    }
+  }
+
+  // Validate new accounts if being changed
+  if (data.accountId) {
+    const account = await prisma.account.findUnique({ where: { id: data.accountId } });
+    if (!account || account.userId !== userId) {
+      throw new NotFoundError('Account');
+    }
+  }
+
+  if (data.transferAccountId) {
+    const transferAccount = await prisma.account.findUnique({ where: { id: data.transferAccountId } });
+    if (!transferAccount || transferAccount.userId !== userId) {
+      throw new NotFoundError('Transfer account');
+    }
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const oldAmount = existing.amount.toNumber();
+    const oldType = existing.type;
+    const oldAccountId = existing.accountId;
+    const oldTransferAccountId = existing.transferAccountId;
+
+    // Revert old balance impacts
+    if (oldAccountId) {
+      const oldDelta = getBalanceDelta(oldType, oldAmount);
+      await tx.account.update({
+        where: { id: oldAccountId },
+        data: { currentBalance: { increment: -oldDelta } },
+      });
+    }
+
+    if (oldType === 'TRANSFER' && oldTransferAccountId) {
+      await tx.account.update({
+        where: { id: oldTransferAccountId },
+        data: { currentBalance: { increment: -oldAmount } },
+      });
+    }
+
+    // Build update data
+    const updateData: Prisma.TransactionUpdateInput = {};
+
+    if (data.type !== undefined) updateData.type = data.type;
+    if (data.amount !== undefined) updateData.amount = data.amount;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.date !== undefined) updateData.date = new Date(data.date);
+    if (data.paymentMethod !== undefined) updateData.paymentMethod = data.paymentMethod;
+    if (data.currency !== undefined) updateData.currency = data.currency;
+    if (data.categoryId !== undefined) {
+      if (data.categoryId === null) {
+        updateData.category = { disconnect: true };
+      } else {
+        updateData.category = { connect: { id: data.categoryId } };
+      }
+    }
+    if (data.accountId !== undefined) {
+      if (data.accountId === null) {
+        updateData.account = { disconnect: true };
+      } else {
+        updateData.account = { connect: { id: data.accountId } };
+      }
+    }
+    if (data.transferAccountId !== undefined) {
+      if (data.transferAccountId === null) {
+        updateData.transferAccount = { disconnect: true };
+      } else {
+        updateData.transferAccount = { connect: { id: data.transferAccountId } };
+      }
+    }
+
+    const result = await tx.transaction.update({
+      where: { id },
+      data: updateData,
+      include: {
+        category: true,
+        account: true,
+        transferAccount: true,
+      },
+    });
+
+    // Apply new balance impacts
+    const newType = data.type ?? oldType;
+    const newAmount = data.amount ?? oldAmount;
+    const newAccountId = data.accountId !== undefined ? data.accountId : oldAccountId;
+    const newTransferAccountId = data.transferAccountId !== undefined ? data.transferAccountId : oldTransferAccountId;
+
+    if (newAccountId) {
+      const newDelta = getBalanceDelta(newType, newAmount);
+      await tx.account.update({
+        where: { id: newAccountId },
+        data: { currentBalance: { increment: newDelta } },
+      });
+    }
+
+    if (newType === 'TRANSFER' && newTransferAccountId) {
+      await tx.account.update({
+        where: { id: newTransferAccountId },
+        data: { currentBalance: { increment: newAmount } },
+      });
+    }
+
+    return result;
   });
 
   return updated;
 }
+
+// ── Delete ──────────────────────────────────────────────────────────
 
 export async function remove(id: string, userId: string) {
   const transaction = await prisma.transaction.findUnique({
@@ -187,10 +359,31 @@ export async function remove(id: string, userId: string) {
     throw new NotFoundError('Transaction');
   }
 
-  await prisma.transaction.delete({
-    where: { id },
+  await prisma.$transaction(async (tx) => {
+    const amount = transaction.amount.toNumber();
+
+    // Revert balance impact on source account
+    if (transaction.accountId) {
+      const delta = getBalanceDelta(transaction.type, amount);
+      await tx.account.update({
+        where: { id: transaction.accountId },
+        data: { currentBalance: { increment: -delta } },
+      });
+    }
+
+    // Revert balance impact on destination account (transfers)
+    if (transaction.type === 'TRANSFER' && transaction.transferAccountId) {
+      await tx.account.update({
+        where: { id: transaction.transferAccountId },
+        data: { currentBalance: { increment: -amount } },
+      });
+    }
+
+    await tx.transaction.delete({ where: { id } });
   });
 }
+
+// ── Stats ───────────────────────────────────────────────────────────
 
 export async function getMonthlyStats(userId: string, month: number, year: number) {
   const startDate = new Date(year, month - 1, 1);

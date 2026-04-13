@@ -17,6 +17,7 @@ import recurringRoutes from './modules/recurring/recurring.routes';
 import investmentsRoutes from './modules/investments/investments.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
 import reportsRoutes from './modules/reports/reports.routes';
+import accountsRoutes from './modules/accounts/accounts.routes';
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/api/recurring', authMiddleware, recurringRoutes);
 app.use('/api/investments', authMiddleware, investmentsRoutes);
 app.use('/api/analytics', authMiddleware, analyticsRoutes);
 app.use('/api/reports', authMiddleware, reportsRoutes);
+app.use('/api/accounts', authMiddleware, accountsRoutes);
 
 // Error handling
 app.use(errorMiddleware);

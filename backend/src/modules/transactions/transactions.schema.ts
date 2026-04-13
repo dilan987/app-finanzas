@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const createTransactionSchema = z.object({
-  type: z.enum(['INCOME', 'EXPENSE'], {
-    message: 'Type must be INCOME or EXPENSE',
+  type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER'], {
+    message: 'Type must be INCOME, EXPENSE, or TRANSFER',
   }),
   amount: z
     .number()
@@ -18,13 +18,42 @@ export const createTransactionSchema = z.object({
     message: 'Payment method must be CASH, DEBIT_CARD, CREDIT_CARD, or TRANSFER',
   }),
   currency: z.string().length(3, 'Currency must be a 3-letter code').default('COP'),
-  categoryId: z.string().min(1, 'Category ID is required'),
-});
+  categoryId: z.string().min(1, 'Category ID is required').optional().nullable(),
+  accountId: z.string().min(1, 'Account ID is required').optional().nullable(),
+  transferAccountId: z.string().min(1, 'Transfer account ID is required').optional().nullable(),
+}).refine(
+  (data) => {
+    // TRANSFER requires both accountId and transferAccountId
+    if (data.type === 'TRANSFER') {
+      return !!data.accountId && !!data.transferAccountId;
+    }
+    return true;
+  },
+  { message: 'Transfer transactions require both accountId and transferAccountId', path: ['transferAccountId'] },
+).refine(
+  (data) => {
+    // TRANSFER accounts must be different
+    if (data.type === 'TRANSFER' && data.accountId && data.transferAccountId) {
+      return data.accountId !== data.transferAccountId;
+    }
+    return true;
+  },
+  { message: 'Source and destination accounts must be different', path: ['transferAccountId'] },
+).refine(
+  (data) => {
+    // INCOME and EXPENSE require categoryId
+    if (data.type !== 'TRANSFER') {
+      return !!data.categoryId;
+    }
+    return true;
+  },
+  { message: 'Category is required for income and expense transactions', path: ['categoryId'] },
+);
 
 export const updateTransactionSchema = z.object({
   type: z
-    .enum(['INCOME', 'EXPENSE'], {
-      message: 'Type must be INCOME or EXPENSE',
+    .enum(['INCOME', 'EXPENSE', 'TRANSFER'], {
+      message: 'Type must be INCOME, EXPENSE, or TRANSFER',
     })
     .optional(),
   amount: z
@@ -48,16 +77,19 @@ export const updateTransactionSchema = z.object({
     })
     .optional(),
   currency: z.string().length(3, 'Currency must be a 3-letter code').optional(),
-  categoryId: z.string().min(1, 'Category ID is required').optional(),
+  categoryId: z.string().min(1, 'Category ID is required').nullable().optional(),
+  accountId: z.string().min(1, 'Account ID is required').nullable().optional(),
+  transferAccountId: z.string().min(1).nullable().optional(),
 });
 
 export const getTransactionsQuerySchema = z.object({
   type: z
-    .enum(['INCOME', 'EXPENSE'], {
-      message: 'Type must be INCOME or EXPENSE',
+    .enum(['INCOME', 'EXPENSE', 'TRANSFER'], {
+      message: 'Type must be INCOME, EXPENSE, or TRANSFER',
     })
     .optional(),
   categoryId: z.string().min(1, 'Category ID is required').optional(),
+  accountId: z.string().min(1, 'Account ID is required').optional(),
   startDate: z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), { message: 'Must be a valid date string' })

@@ -18,6 +18,7 @@ const AnalyticsPage = lazy(() => import('../pages/AnalyticsPage'));
 const ReportsPage = lazy(() => import('../pages/ReportsPage'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage'));
 const SettingsPage = lazy(() => import('../pages/SettingsPage'));
+const AccountsPage = lazy(() => import('../pages/AccountsPage'));
 
 function PageLoader() {
   return (
@@ -40,6 +41,7 @@ export function AppRoutes() {
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/accounts" element={<AccountsPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/transactions/:id" element={<TransactionDetailPage />} />
           <Route path="/categories" element={<CategoriesPage />} />

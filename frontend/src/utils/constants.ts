@@ -1,4 +1,4 @@
-import type { PaymentMethod, Frequency, InvestmentType, Severity } from '../types';
+import type { PaymentMethod, Frequency, InvestmentType, Severity, AccountType } from '../types';
 
 export const DEFAULT_CURRENCY = 'COP' as const;
 
@@ -85,6 +85,31 @@ export const SEVERITY_COLORS: Record<Severity, string> = {
 export const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   INCOME: 'Ingreso',
   EXPENSE: 'Gasto',
+  TRANSFER: 'Transferencia',
 };
+
+export const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
+  { value: 'CHECKING', label: 'Cuenta corriente', icon: 'HiBuildingOffice' },
+  { value: 'SAVINGS', label: 'Cuenta de ahorros', icon: 'HiBanknotes' },
+  { value: 'CREDIT_CARD', label: 'Tarjeta de credito', icon: 'HiCreditCard' },
+  { value: 'CASH', label: 'Efectivo', icon: 'HiBanknotes' },
+  { value: 'NEOBANK', label: 'Neobanco', icon: 'HiDevicePhoneMobile' },
+  { value: 'INVESTMENT', label: 'Inversion', icon: 'HiChartBar' },
+  { value: 'LOAN', label: 'Prestamo', icon: 'HiDocumentText' },
+  { value: 'OTHER', label: 'Otro', icon: 'HiWallet' },
+];
+
+export const ACCOUNT_COLORS: string[] = [
+  '#3B82F6', // Blue
+  '#10B981', // Emerald
+  '#F59E0B', // Amber
+  '#EF4444', // Red
+  '#8B5CF6', // Violet
+  '#EC4899', // Pink
+  '#06B6D4', // Cyan
+  '#F97316', // Orange
+  '#6366F1', // Indigo
+  '#14B8A6', // Teal
+];
 
 export const ITEMS_PER_PAGE = 20;
