@@ -1,12 +1,13 @@
 import { Prisma, TransactionType } from '@prisma/client';
 import { prisma } from '../../config/database';
-import { NotFoundError, ForbiddenError } from '../../utils/errors';
+import { NotFoundError, ForbiddenError, AppError } from '../../utils/errors';
 import { getPaginationParams, getPaginationMeta } from '../../utils/helpers';
 import {
   CreateTransactionInput,
   UpdateTransactionInput,
   GetTransactionsQuery,
 } from './transactions.schema';
+import { checkAutoComplete } from '../goals/goals.service';
 
 // ── Helpers for account balance updates ─────────────────────────────
 
@@ -164,6 +165,21 @@ export async function create(userId: string, data: CreateTransactionInput) {
     }
   }
 
+  // Validate goal if provided
+  if (data.goalId) {
+    const goal = await prisma.goal.findUnique({ where: { id: data.goalId } });
+    if (!goal || goal.userId !== userId) {
+      throw new NotFoundError('Goal');
+    }
+    if (goal.status !== 'ACTIVE') {
+      throw new AppError('Cannot link transactions to a non-active goal', 400);
+    }
+    const validType = goal.type === 'DEBT' ? 'EXPENSE' : 'INCOME';
+    if (data.type !== validType) {
+      throw new AppError(`Only ${validType} transactions can be linked to ${goal.type} goals`, 400);
+    }
+  }
+
   const amount = data.amount;
 
   // Use a prisma transaction to atomically create + update balances
@@ -179,6 +195,7 @@ export async function create(userId: string, data: CreateTransactionInput) {
         categoryId: data.categoryId ?? null,
         accountId: data.accountId ?? null,
         transferAccountId: data.transferAccountId ?? null,
+        goalId: data.goalId ?? null,
         userId,
       },
       include: {
@@ -207,6 +224,11 @@ export async function create(userId: string, data: CreateTransactionInput) {
 
     return created;
   });
+
+  // Check auto-complete after the DB transaction commits
+  if (data.goalId) {
+    await checkAutoComplete(data.goalId);
+  }
 
   return transaction;
 }
@@ -306,6 +328,13 @@ export async function update(id: string, userId: string, data: UpdateTransaction
         updateData.transferAccount = { connect: { id: data.transferAccountId } };
       }
     }
+    if (data.goalId !== undefined) {
+      if (data.goalId === null) {
+        updateData.goal = { disconnect: true };
+      } else {
+        updateData.goal = { connect: { id: data.goalId } };
+      }
+    }
 
     const result = await tx.transaction.update({
       where: { id },
@@ -340,6 +369,15 @@ export async function update(id: string, userId: string, data: UpdateTransaction
 
     return result;
   });
+
+  // Check auto-complete for new and old goals
+  const newGoalId = data.goalId !== undefined ? data.goalId : existing.goalId;
+  if (newGoalId) {
+    await checkAutoComplete(newGoalId);
+  }
+  if (existing.goalId && existing.goalId !== newGoalId) {
+    // Old goal was unlinked — re-check (might revert from completed if sum dropped)
+  }
 
   return updated;
 }

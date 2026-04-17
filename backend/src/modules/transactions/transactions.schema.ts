@@ -21,6 +21,7 @@ export const createTransactionSchema = z.object({
   categoryId: z.string().min(1, 'Category ID is required').optional().nullable(),
   accountId: z.string().min(1, 'Account ID is required').optional().nullable(),
   transferAccountId: z.string().min(1, 'Transfer account ID is required').optional().nullable(),
+  goalId: z.string().min(1, 'Goal ID is required').optional().nullable(),
 }).refine(
   (data) => {
     // TRANSFER requires both accountId and transferAccountId
@@ -80,6 +81,7 @@ export const updateTransactionSchema = z.object({
   categoryId: z.string().min(1, 'Category ID is required').nullable().optional(),
   accountId: z.string().min(1, 'Account ID is required').nullable().optional(),
   transferAccountId: z.string().min(1).nullable().optional(),
+  goalId: z.string().min(1).nullable().optional(),
 });
 
 export const getTransactionsQuerySchema = z.object({

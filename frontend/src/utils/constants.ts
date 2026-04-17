@@ -1,4 +1,4 @@
-import type { PaymentMethod, Frequency, InvestmentType, Severity, AccountType } from '../types';
+import type { PaymentMethod, Frequency, InvestmentType, Severity, AccountType, GoalType, GoalStatus, ContributionFrequency } from '../types';
 
 export const DEFAULT_CURRENCY = 'COP' as const;
 
@@ -110,6 +110,29 @@ export const ACCOUNT_COLORS: string[] = [
   '#F97316', // Orange
   '#6366F1', // Indigo
   '#14B8A6', // Teal
+];
+
+export const GOAL_TYPES: { value: GoalType; label: string; icon: string }[] = [
+  { value: 'DEBT', label: 'Deuda', icon: 'HiCreditCard' },
+  { value: 'SAVINGS', label: 'Ahorro', icon: 'HiBanknotes' },
+];
+
+export const GOAL_STATUSES: { value: GoalStatus; label: string; color: string }[] = [
+  { value: 'ACTIVE', label: 'Activa', color: '#3b82f6' },
+  { value: 'COMPLETED', label: 'Completada', color: '#22c55e' },
+  { value: 'CANCELLED', label: 'Cancelada', color: '#78716c' },
+];
+
+export const GOAL_STATUS_COLORS: Record<GoalStatus, string> = {
+  ACTIVE: '#3b82f6',
+  COMPLETED: '#22c55e',
+  CANCELLED: '#78716c',
+};
+
+export const CONTRIBUTION_FREQUENCIES: { value: ContributionFrequency; label: string }[] = [
+  { value: 'WEEKLY', label: 'Semanal' },
+  { value: 'BIWEEKLY', label: 'Quincenal' },
+  { value: 'MONTHLY', label: 'Mensual' },
 ];
 
 export const ITEMS_PER_PAGE = 20;

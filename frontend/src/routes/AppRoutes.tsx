@@ -19,6 +19,7 @@ const ReportsPage = lazy(() => import('../pages/ReportsPage'));
 const ProfilePage = lazy(() => import('../pages/ProfilePage'));
 const SettingsPage = lazy(() => import('../pages/SettingsPage'));
 const AccountsPage = lazy(() => import('../pages/AccountsPage'));
+const GoalsPage = lazy(() => import('../pages/GoalsPage'));
 
 function PageLoader() {
   return (
@@ -46,6 +47,7 @@ export function AppRoutes() {
           <Route path="/transactions/:id" element={<TransactionDetailPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/budgets" element={<BudgetsPage />} />
+          <Route path="/goals" element={<GoalsPage />} />
           <Route path="/recurring" element={<RecurringPage />} />
           <Route path="/investments" element={<InvestmentsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />

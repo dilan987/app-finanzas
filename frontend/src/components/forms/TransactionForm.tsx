@@ -2,17 +2,20 @@ import { useState, useEffect, type FormEvent } from 'react';
 import toast from 'react-hot-toast';
 import { HiArrowTrendingUp, HiArrowTrendingDown, HiArrowsRightLeft } from 'react-icons/hi2';
 import Input from '../ui/Input';
+import CurrencyInput from '../ui/CurrencyInput';
 import Select from '../ui/Select';
 import DatePicker from '../ui/DatePicker';
 import Button from '../ui/Button';
 import Spinner from '../ui/Spinner';
 import { categoriesApi } from '../../api/categories.api';
 import { accountsApi } from '../../api/accounts.api';
+import { goalsApi } from '../../api/goals.api';
 import { PAYMENT_METHODS } from '../../utils/constants';
 import { toISODateString } from '../../utils/formatDate';
 import type {
   Category,
   Account,
+  Goal,
   TransactionType,
   PaymentMethod,
   CreateTransactionData,
@@ -28,6 +31,7 @@ interface TransactionFormProps {
     categoryId: string | null;
     accountId?: string | null;
     transferAccountId?: string | null;
+    goalId?: string | null;
   };
   onSubmit: (data: CreateTransactionData) => Promise<void>;
   onCancel: () => void;
@@ -68,8 +72,11 @@ export default function TransactionForm({
   const [_currency, setCurrency] = useState('COP');
   const [errors, setErrors] = useState<FormErrors>({});
 
+  const [goalId, setGoalId] = useState(initialData?.goalId ?? '');
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [activeGoals, setActiveGoals] = useState<Goal[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   const isTransfer = type === 'TRANSFER';
@@ -77,12 +84,14 @@ export default function TransactionForm({
   useEffect(() => {
     async function fetchData() {
       try {
-        const [catRes, accRes] = await Promise.all([
+        const [catRes, accRes, goalsRes] = await Promise.all([
           categoriesApi.getAll(),
           accountsApi.getAll({ isActive: true }),
+          goalsApi.getAll({ status: 'ACTIVE', limit: 100 }),
         ]);
         setCategories(catRes.data.data);
         setAccounts(accRes.data.data);
+        setActiveGoals(goalsRes.data.data);
       } catch {
         toast.error('Error al cargar los datos');
       } finally {
@@ -97,11 +106,17 @@ export default function TransactionForm({
     ? []
     : categories.filter((c) => c.type === type);
 
-  // Reset category when type changes and current selection doesn't match
+  // Filter goals: EXPENSE → DEBT goals, INCOME → SAVINGS goals
+  const filteredGoals = isTransfer
+    ? []
+    : activeGoals.filter((g) => (type === 'EXPENSE' ? g.type === 'DEBT' : g.type === 'SAVINGS'));
+
+  // Reset category and goal when type changes and current selection doesn't match
   useEffect(() => {
     if (loadingData) return;
     if (isTransfer) {
       setCategoryId('');
+      setGoalId('');
       return;
     }
     const valid = filteredCategories.some((c) => c.id === categoryId);
@@ -110,7 +125,11 @@ export default function TransactionForm({
     } else if (!valid) {
       setCategoryId('');
     }
-  }, [type, filteredCategories, categoryId, isTransfer, loadingData]);
+    // Reset goal if not valid for new type
+    if (goalId && !filteredGoals.some((g) => g.id === goalId)) {
+      setGoalId('');
+    }
+  }, [type, filteredCategories, categoryId, isTransfer, loadingData, filteredGoals, goalId]);
 
   function validate(): boolean {
     const next: FormErrors = {};
@@ -151,6 +170,7 @@ export default function TransactionForm({
       categoryId: isTransfer ? null : categoryId,
       accountId: accountId || null,
       transferAccountId: isTransfer ? transferAccountId || null : null,
+      goalId: goalId || null,
     };
 
     await onSubmit(data);
@@ -212,15 +232,11 @@ export default function TransactionForm({
       </div>
 
       {/* Amount */}
-      <Input
+      <CurrencyInput
         label="Monto"
-        type="number"
-        inputMode="decimal"
-        step="0.01"
-        min="0"
-        placeholder="0.00"
+        placeholder="0"
         value={amount}
-        onChange={(e) => setAmount(e.target.value)}
+        onChange={setAmount}
         disabled={loading}
         error={errors.amount}
         icon={<span className="text-base font-semibold">$</span>}
@@ -328,6 +344,23 @@ export default function TransactionForm({
         }))}
         disabled={loading}
       />
+
+      {/* Goal (optional, only for INCOME/EXPENSE) */}
+      {!isTransfer && filteredGoals.length > 0 && (
+        <Select
+          label="Meta (opcional)"
+          value={goalId}
+          onChange={(e) => setGoalId(e.target.value)}
+          options={[
+            { value: '', label: 'Sin meta' },
+            ...filteredGoals.map((g) => ({
+              value: g.id,
+              label: `${g.name} (${Math.round(g.progress)}%)`,
+            })),
+          ]}
+          disabled={loading}
+        />
+      )}
 
       {/* Actions */}
       <div className="flex gap-3 pt-2">

@@ -9,9 +9,12 @@ import {
   HiBanknotes,
   HiArrowTrendingUp,
   HiArrowTrendingDown,
+  HiFlag,
+  HiCreditCard,
 } from 'react-icons/hi2';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import CurrencyInput from '../components/ui/CurrencyInput';
 import Select from '../components/ui/Select';
 import Modal from '../components/ui/Modal';
 import Badge from '../components/ui/Badge';
@@ -25,7 +28,8 @@ import { useUiStore } from '../store/uiStore';
 import { budgetsApi } from '../api/budgets.api';
 import { categoriesApi } from '../api/categories.api';
 import { formatCurrency } from '../utils/formatCurrency';
-import type { Category, CreateBudgetData, UpdateBudgetData } from '../types';
+import { useNavigate } from 'react-router-dom';
+import type { Category, CreateBudgetData, UpdateBudgetData, GoalType } from '../types';
 
 interface BudgetItem {
   id: string;
@@ -37,6 +41,19 @@ interface BudgetItem {
   actualAmount: number;
   remainingAmount: number;
   percentage: number;
+}
+
+interface GoalProjectionItem {
+  id: string;
+  name: string;
+  type: GoalType;
+  targetAmount: number;
+  suggestedInstallment: number | null;
+  totalPaid: number;
+  paidThisMonth: number;
+  progress: number;
+  contributionFrequency: string | null;
+  plannedContribution: number | null;
 }
 
 interface ProjectionSummary {
@@ -51,6 +68,9 @@ interface ProjectionSummary {
   overallPercentage: number;
   unplannedExpenses: number;
   budgets: BudgetItem[];
+  goals: GoalProjectionItem[];
+  goalsTotalCommitment: number;
+  goalsTotalPaidThisMonth: number;
 }
 
 interface BudgetFormState {
@@ -68,6 +88,7 @@ const initialForm: BudgetFormState = {
 };
 
 export default function BudgetsPage() {
+  const navigate = useNavigate();
   const { currentMonth, currentYear } = useUiStore();
 
   const [projection, setProjection] = useState<ProjectionSummary | null>(null);
@@ -110,6 +131,20 @@ export default function BudgetsPage() {
           remainingAmount: b.remainingAmount ?? 0,
           percentage: b.percentage ?? 0,
         })),
+        goals: (raw.goals ?? []).map((g: any) => ({
+          id: g.id,
+          name: g.name,
+          type: g.type,
+          targetAmount: g.targetAmount,
+          suggestedInstallment: g.suggestedInstallment ?? null,
+          totalPaid: g.totalPaid,
+          paidThisMonth: g.paidThisMonth,
+          progress: g.progress,
+          contributionFrequency: g.contributionFrequency ?? null,
+          plannedContribution: g.plannedContribution ?? null,
+        })),
+        goalsTotalCommitment: raw.goalsTotalCommitment ?? 0,
+        goalsTotalPaidThisMonth: raw.goalsTotalPaidThisMonth ?? 0,
       });
     } catch {
       toast.error('Error al cargar la proyeccion');
@@ -482,6 +517,111 @@ export default function BudgetsPage() {
         </div>
       )}
 
+      {/* Active Goals for the Month */}
+      {projection && projection.goals.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <HiFlag className="h-5 w-5 text-primary-500" />
+              <h2 className="text-lg font-semibold text-text-primary">
+                Metas del Mes ({projection.goals.length})
+              </h2>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-text-secondary">
+                Compromiso: <span className="font-semibold text-text-primary">{formatCurrency(projection.goalsTotalCommitment)}</span>
+              </span>
+              <span className="text-text-secondary">
+                Pagado: <span className="font-semibold text-income">{formatCurrency(projection.goalsTotalPaidThisMonth)}</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {projection.goals.map((goal) => {
+              // For DEBT: use suggestedInstallment; for SAVINGS: use planned monthly contribution
+              const monthlyCommitment = goal.type === 'DEBT'
+                ? (goal.suggestedInstallment ?? 0)
+                : (goal.plannedContribution != null && goal.contributionFrequency
+                    ? goal.plannedContribution * (goal.contributionFrequency === 'WEEKLY' ? 4 : goal.contributionFrequency === 'BIWEEKLY' ? 2 : 1)
+                    : 0);
+              const remaining = monthlyCommitment - goal.paidThisMonth;
+              const monthPct = monthlyCommitment > 0
+                ? Math.min(100, Math.round((goal.paidThisMonth / monthlyCommitment) * 100))
+                : 0;
+
+              return (
+                <div
+                  key={goal.id}
+                  onClick={() => navigate('/goals')}
+                  className="group cursor-pointer rounded-xl border border-border-primary bg-surface-card p-4 shadow-card transition-all hover:shadow-card-hover hover:border-primary-200 dark:hover:border-primary-800"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                        goal.type === 'DEBT'
+                          ? 'bg-expense-bg text-expense dark:bg-[rgba(239,68,68,0.12)] dark:text-expense-light'
+                          : 'bg-income-bg text-income dark:bg-[rgba(5,150,105,0.12)] dark:text-income-light'
+                      }`}>
+                        {goal.type === 'DEBT' ? <HiCreditCard className="h-4 w-4" /> : <HiBanknotes className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-text-primary truncate">{goal.name}</p>
+                        <p className="text-xs text-text-tertiary">
+                          {goal.type === 'DEBT' ? 'Deuda' : 'Ahorro'} · {goal.progress}% completado
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6 shrink-0">
+                      <div className="text-right text-sm hidden sm:block">
+                        <p className="text-text-secondary">
+                          {goal.type === 'DEBT' ? 'Cuota' : 'Aporte'}: {monthlyCommitment > 0 ? formatCurrency(monthlyCommitment) : 'Libre'}
+                        </p>
+                        <p className="text-xs text-text-tertiary">
+                          Este mes: {formatCurrency(goal.paidThisMonth)}
+                        </p>
+                      </div>
+                      <div className="w-20 text-right">
+                        {monthlyCommitment > 0 && remaining > 0 ? (
+                          <p className="text-sm font-semibold text-warning-dark dark:text-warning-light">
+                            -{formatCurrency(remaining)}
+                          </p>
+                        ) : monthlyCommitment > 0 ? (
+                          <Badge variant="income">Al dia</Badge>
+                        ) : (
+                          <Badge variant="neutral">Libre</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Month progress */}
+                  {monthlyCommitment > 0 && (
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs text-text-tertiary mb-1">
+                      <span>Progreso del mes</span>
+                      <span>{monthPct}%</span>
+                    </div>
+                    <ProgressBar value={monthPct} showLabel={false} size="sm" thresholdColors={false} />
+                  </div>
+                  )}
+
+                  {/* Overall progress bar */}
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs text-text-tertiary mb-1">
+                      <span>Progreso total: {formatCurrency(goal.totalPaid)} / {formatCurrency(goal.targetAmount)}</span>
+                      <span>{goal.progress}%</span>
+                    </div>
+                    <ProgressBar value={goal.progress} showLabel={false} size="sm" thresholdColors={false} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Create/Edit Modal */}
       <Modal
         isOpen={modalOpen}
@@ -515,14 +655,11 @@ export default function BudgetsPage() {
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
-          <Input
+          <CurrencyInput
             label="Monto proyectado"
-            type="number"
-            min="0"
-            step="1000"
             placeholder="0"
             value={form.amount}
-            onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+            onChange={(v) => setForm((f) => ({ ...f, amount: v }))}
           />
           <div className="rounded-lg bg-primary-50 p-3 dark:bg-primary-950/20">
             <p className="text-xs text-primary-700 dark:text-primary-300">

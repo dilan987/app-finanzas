@@ -18,6 +18,7 @@ import investmentsRoutes from './modules/investments/investments.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
 import reportsRoutes from './modules/reports/reports.routes';
 import accountsRoutes from './modules/accounts/accounts.routes';
+import goalsRoutes from './modules/goals/goals.routes';
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use('/api/investments', authMiddleware, investmentsRoutes);
 app.use('/api/analytics', authMiddleware, analyticsRoutes);
 app.use('/api/reports', authMiddleware, reportsRoutes);
 app.use('/api/accounts', authMiddleware, accountsRoutes);
+app.use('/api/goals', authMiddleware, goalsRoutes);
 
 // Error handling
 app.use(errorMiddleware);

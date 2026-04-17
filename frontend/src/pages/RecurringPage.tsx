@@ -8,6 +8,7 @@ import {
 } from 'react-icons/hi2';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import CurrencyInput from '../components/ui/CurrencyInput';
 import Select from '../components/ui/Select';
 import Modal from '../components/ui/Modal';
 import Badge from '../components/ui/Badge';
@@ -19,6 +20,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { recurringApi } from '../api/recurring.api';
 import { categoriesApi } from '../api/categories.api';
 import { accountsApi } from '../api/accounts.api';
+import { goalsApi } from '../api/goals.api';
 import { formatCurrency } from '../utils/formatCurrency';
 import { formatShortDate } from '../utils/formatDate';
 import { FREQUENCIES, PAYMENT_METHODS } from '../utils/constants';
@@ -26,6 +28,7 @@ import type {
   RecurringTransaction,
   Category,
   Account,
+  Goal,
   TransactionType,
   CreateRecurringData,
   UpdateRecurringData,
@@ -42,6 +45,7 @@ interface RecurringFormState {
   nextExecutionDate: string;
   paymentMethod: PaymentMethod;
   accountId: string;
+  goalId: string;
 }
 
 const initialForm: RecurringFormState = {
@@ -53,6 +57,7 @@ const initialForm: RecurringFormState = {
   nextExecutionDate: new Date().toISOString().split('T')[0] ?? '',
   paymentMethod: 'CASH',
   accountId: '',
+  goalId: '',
 };
 
 function getFrequencyLabel(freq: Frequency): string {
@@ -71,17 +76,20 @@ export default function RecurringPage() {
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [activeGoals, setActiveGoals] = useState<Goal[]>([]);
 
   const loadData = useCallback(async () => {
     try {
-      const [recRes, catRes, accRes] = await Promise.all([
+      const [recRes, catRes, accRes, goalsRes] = await Promise.all([
         recurringApi.getAll(),
         categoriesApi.getAll(),
         accountsApi.getAll({ isActive: true }),
+        goalsApi.getAll({ status: 'ACTIVE', limit: 100 }),
       ]);
       setItems(recRes.data.data);
       setCategories(catRes.data.data);
       setAccounts(accRes.data.data);
+      setActiveGoals(goalsRes.data.data);
     } catch {
       toast.error('Error al cargar recurrencias');
     } finally {
@@ -112,6 +120,7 @@ export default function RecurringPage() {
       nextExecutionDate: item.nextExecutionDate?.split('T')[0] ?? '',
       paymentMethod: item.paymentMethod,
       accountId: item.accountId ?? '',
+      goalId: (item as any).goalId ?? '',
     });
     setModalOpen(true);
   };
@@ -151,6 +160,7 @@ export default function RecurringPage() {
           nextExecutionDate: form.nextExecutionDate,
           paymentMethod: form.paymentMethod,
           accountId: form.accountId || null,
+          goalId: form.goalId || null,
         };
         const res = await recurringApi.update(editingId, data);
         setItems((prev) => prev.map((i) => (i.id === editingId ? res.data.data : i)));
@@ -165,6 +175,7 @@ export default function RecurringPage() {
           nextExecutionDate: form.nextExecutionDate,
           paymentMethod: form.paymentMethod,
           accountId: form.accountId || null,
+          goalId: form.goalId || null,
         };
         const res = await recurringApi.create(data);
         setItems((prev) => [...prev, res.data.data]);
@@ -346,14 +357,11 @@ export default function RecurringPage() {
             value={form.description}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           />
-          <Input
+          <CurrencyInput
             label="Monto"
-            type="number"
-            min="0"
-            step="1000"
             placeholder="0"
             value={form.amount}
-            onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+            onChange={(v) => setForm((f) => ({ ...f, amount: v }))}
           />
           <Select
             label="Categoria"
@@ -387,6 +395,27 @@ export default function RecurringPage() {
               onChange={(e) => setForm((f) => ({ ...f, accountId: e.target.value }))}
             />
           )}
+          {/* Goal (optional) */}
+          {(() => {
+            const filteredGoals = activeGoals.filter((g) =>
+              form.type === 'EXPENSE' ? g.type === 'DEBT' : g.type === 'SAVINGS',
+            );
+            if (filteredGoals.length === 0) return null;
+            return (
+              <Select
+                label="Meta (opcional)"
+                value={form.goalId}
+                onChange={(e) => setForm((f) => ({ ...f, goalId: e.target.value }))}
+                options={[
+                  { value: '', label: 'Sin meta' },
+                  ...filteredGoals.map((g) => ({
+                    value: g.id,
+                    label: `${g.name} (${Math.round(g.progress)}%)`,
+                  })),
+                ]}
+              />
+            );
+          })()}
           <DatePicker
             label="Proxima ejecucion"
             value={form.nextExecutionDate}

@@ -18,6 +18,12 @@ export type Frequency = 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'YEARLY';
 
 export type InvestmentType = 'STOCKS' | 'CDT' | 'CRYPTO' | 'FUND' | 'FOREX' | 'OTHER';
 
+export type GoalType = 'DEBT' | 'SAVINGS';
+
+export type GoalStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+
+export type ContributionFrequency = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+
 export type Severity = 'INFO' | 'WARNING' | 'CRITICAL';
 
 // ── Domain models (match backend Prisma schema) ───────────────────
@@ -86,6 +92,8 @@ export interface Transaction {
   recurringId: string | null;
   accountId: string | null;
   account?: Account;
+  goalId: string | null;
+  goal?: Goal;
   transferAccountId: string | null;
   transferAccount?: Account;
   createdAt: string;
@@ -126,6 +134,8 @@ export interface RecurringTransaction {
   currency: string;
   accountId: string | null;
   account?: Account;
+  goalId: string | null;
+  goal?: Goal;
   createdAt: string;
   updatedAt: string;
 }
@@ -154,6 +164,79 @@ export interface Recommendation {
   category: string;
   isRead: boolean;
   createdAt: string;
+}
+
+export interface Goal {
+  id: string;
+  name: string;
+  description: string | null;
+  type: GoalType;
+  status: GoalStatus;
+  targetAmount: number;
+  // DEBT-only (nullable for SAVINGS)
+  plannedInstallments: number | null;
+  suggestedInstallment: number | null;
+  startMonth: number | null;
+  startYear: number | null;
+  projectedEndMonth: number | null;
+  projectedEndYear: number | null;
+  // SAVINGS-only (nullable for DEBT)
+  contributionFrequency: ContributionFrequency | null;
+  plannedContribution: number | null;
+  // Computed
+  totalPaid: number;
+  progress: number;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  transactions?: Transaction[];
+}
+
+export interface GoalProjection {
+  goalId: string;
+  goalType: GoalType;
+  historicalMonthlyRate: number | null;
+  historicalMonthsRemaining: number | null;
+  historicalCompletionDate: string | null;
+  plannedMonthlyRate: number | null;
+  plannedMonthsRemaining: number | null;
+  plannedCompletionDate: string | null;
+  actualMonthlyRate: number | null;
+  actualMonthsRemaining: number | null;
+  actualCompletionDate: string | null;
+  paceStatus: 'ahead' | 'behind' | 'on_track' | 'no_data';
+  insightMessages: string[];
+  // Smart projection fields
+  netMonthlySavings: number | null;
+  availableBalance: number;
+  totalGoalCommitments: number;
+  isOvercommitted: boolean;
+  monthsOfData: number;
+}
+
+export interface GoalActiveForMonth {
+  id: string;
+  name: string;
+  type: GoalType;
+  status: GoalStatus;
+  targetAmount: number;
+  suggestedInstallment: number | null;
+  totalPaid: number;
+  paidThisMonth: number;
+  progress: number;
+  startMonth: number | null;
+  startYear: number | null;
+  projectedEndMonth: number | null;
+  projectedEndYear: number | null;
+  plannedInstallments: number | null;
+  contributionFrequency: ContributionFrequency | null;
+  plannedContribution: number | null;
+}
+
+export interface GoalMonthSummary {
+  goals: GoalActiveForMonth[];
+  totalCommitment: number;
+  totalPaidThisMonth: number;
 }
 
 // ── API response wrappers ─────────────────────────────────────────
@@ -218,6 +301,13 @@ export interface RecurringFilters {
 export interface InvestmentFilters {
   isActive?: boolean;
   type?: InvestmentType;
+  page?: number;
+  limit?: number;
+}
+
+export interface GoalFilters {
+  status?: GoalStatus;
+  type?: GoalType;
   page?: number;
   limit?: number;
 }
@@ -299,6 +389,7 @@ export interface CreateTransactionData {
   categoryId?: string | null;
   accountId?: string | null;
   transferAccountId?: string | null;
+  goalId?: string | null;
   currency?: string;
 }
 
@@ -336,6 +427,7 @@ export interface CreateRecurringData {
   paymentMethod: PaymentMethod;
   categoryId: string;
   accountId?: string | null;
+  goalId?: string | null;
   currency?: string;
 }
 
@@ -353,6 +445,35 @@ export interface CreateInvestmentData {
 }
 
 export interface UpdateInvestmentData extends Partial<CreateInvestmentData> {}
+
+export interface CreateDebtGoalData {
+  name: string;
+  description?: string;
+  type: 'DEBT';
+  targetAmount: number;
+  plannedInstallments: number;
+  startMonth: number;
+  startYear: number;
+}
+
+export interface CreateSavingsGoalData {
+  name: string;
+  description?: string;
+  type: 'SAVINGS';
+  targetAmount: number;
+  contributionFrequency?: ContributionFrequency;
+  plannedContribution?: number;
+}
+
+export type CreateGoalData = CreateDebtGoalData | CreateSavingsGoalData;
+
+export interface UpdateGoalData {
+  name?: string;
+  description?: string | null;
+  plannedInstallments?: number;
+  contributionFrequency?: ContributionFrequency | null;
+  plannedContribution?: number | null;
+}
 
 export interface ChangePasswordData {
   currentPassword: string;

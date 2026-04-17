@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import CurrencyInput from '../../components/ui/CurrencyInput';
 import Select from '../../components/ui/Select';
 import DatePicker from '../../components/ui/DatePicker';
 import Modal from '../../components/ui/Modal';
@@ -255,19 +256,17 @@ export default function TransactionsPage() {
               ]}
             />
             <div className="grid grid-cols-2 gap-2">
-              <Input
+              <CurrencyInput
                 label="Monto min"
-                type="number"
                 placeholder="0"
                 value={minAmount}
-                onChange={(e) => setMinAmount(e.target.value)}
+                onChange={setMinAmount}
               />
-              <Input
+              <CurrencyInput
                 label="Monto max"
-                type="number"
                 placeholder="999999"
                 value={maxAmount}
-                onChange={(e) => setMaxAmount(e.target.value)}
+                onChange={setMaxAmount}
               />
             </div>
             <DatePicker

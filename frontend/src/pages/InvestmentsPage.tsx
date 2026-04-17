@@ -12,6 +12,7 @@ import {
 } from 'react-icons/hi2';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import CurrencyInput from '../components/ui/CurrencyInput';
 import Select from '../components/ui/Select';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
@@ -394,23 +395,17 @@ export default function InvestmentsPage() {
             onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as InvestmentType }))}
           />
           <div className="grid grid-cols-2 gap-4">
-            <Input
+            <CurrencyInput
               label="Monto invertido"
-              type="number"
-              min="0"
-              step="1000"
               placeholder="0"
               value={form.amountInvested}
-              onChange={(e) => setForm((f) => ({ ...f, amountInvested: e.target.value }))}
+              onChange={(v) => setForm((f) => ({ ...f, amountInvested: v }))}
             />
-            <Input
+            <CurrencyInput
               label="Valor actual (opcional)"
-              type="number"
-              min="0"
-              step="1000"
               placeholder="Igual al invertido"
               value={form.currentValue}
-              onChange={(e) => setForm((f) => ({ ...f, currentValue: e.target.value }))}
+              onChange={(v) => setForm((f) => ({ ...f, currentValue: v }))}
             />
           </div>
           <DatePicker

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Input from '../ui/Input';
+import CurrencyInput from '../ui/CurrencyInput';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
 import Toggle from '../ui/Toggle';
@@ -87,12 +88,10 @@ export default function AccountForm({ account, onSubmit, onCancel, loading }: Ac
       />
 
       {!isEditing && (
-        <Input
+        <CurrencyInput
           label="Saldo inicial"
-          type="number"
-          step="0.01"
           value={initialBalance}
-          onChange={(e) => setInitialBalance(e.target.value)}
+          onChange={setInitialBalance}
           helperText="El saldo actual de la cuenta al momento de registrarla"
         />
       )}

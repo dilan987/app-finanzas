@@ -313,6 +313,58 @@ export async function getMonthSummary(userId: string, month: number, year: numbe
     unplannedExpenses = totalActualExpenses;
   }
 
+  // ── Active goals for the month ──────────────────────────────────
+  const targetDate = year * 12 + month;
+  const allActiveGoals = await prisma.goal.findMany({
+    where: { userId, status: 'ACTIVE' },
+  });
+
+  const activeGoals = allActiveGoals.filter((g) => {
+    // SAVINGS goals are always active (no date range)
+    if (g.type === 'SAVINGS') return true;
+    // DEBT goals: check date range
+    if (g.startYear == null || g.startMonth == null || g.projectedEndYear == null || g.projectedEndMonth == null) return true;
+    const startDate2 = g.startYear * 12 + g.startMonth;
+    const endDate2 = g.projectedEndYear * 12 + g.projectedEndMonth;
+    return targetDate >= startDate2 && targetDate <= endDate2;
+  });
+
+  const goalsData = await Promise.all(
+    activeGoals.map(async (goal) => {
+      const [totalResult, monthResult] = await Promise.all([
+        prisma.transaction.aggregate({
+          where: { goalId: goal.id },
+          _sum: { amount: true },
+        }),
+        prisma.transaction.aggregate({
+          where: {
+            goalId: goal.id,
+            date: { gte: startDate, lte: endDate },
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+
+      const totalPaid = totalResult._sum.amount?.toNumber() ?? 0;
+      const paidThisMonth = monthResult._sum.amount?.toNumber() ?? 0;
+      const target = goal.targetAmount.toNumber();
+
+      return {
+        id: goal.id,
+        name: goal.name,
+        type: goal.type,
+        targetAmount: target,
+        suggestedInstallment: goal.suggestedInstallment?.toNumber() ?? 0,
+        totalPaid,
+        paidThisMonth,
+        progress: target > 0 ? Math.round((totalPaid / target) * 10000) / 100 : 0,
+      };
+    }),
+  );
+
+  const goalsTotalCommitment = goalsData.reduce((sum, g) => sum + g.suggestedInstallment, 0);
+  const goalsTotalPaidThisMonth = goalsData.reduce((sum, g) => sum + g.paidThisMonth, 0);
+
   const projectedBalance = totalProjectedIncome - totalProjectedExpenses;
   const actualBalance = totalActualIncome - totalActualExpenses;
 
@@ -335,5 +387,8 @@ export async function getMonthSummary(userId: string, month: number, year: numbe
     unplannedExpenses,
     copiedFromPrevious,
     budgets: summary,
+    goals: goalsData,
+    goalsTotalCommitment,
+    goalsTotalPaidThisMonth,
   };
 }

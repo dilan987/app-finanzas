@@ -7,6 +7,7 @@ import {
   UpdateRecurringInput,
   GetRecurringQuery,
 } from './recurring.schema';
+import { checkAutoComplete } from '../goals/goals.service';
 
 export async function getAll(userId: string, filters: GetRecurringQuery) {
   const { skip, take, page, limit } = getPaginationParams({
@@ -92,6 +93,7 @@ export async function create(userId: string, data: CreateRecurringInput) {
       paymentMethod: data.paymentMethod,
       currency: data.currency,
       accountId: data.accountId ?? null,
+      goalId: data.goalId ?? null,
     },
     include: { category: true, account: true },
   });
@@ -152,6 +154,13 @@ export async function update(id: string, userId: string, data: UpdateRecurringIn
       updateData.account = { disconnect: true };
     } else {
       updateData.account = { connect: { id: data.accountId } };
+    }
+  }
+  if (data.goalId !== undefined) {
+    if (data.goalId === null) {
+      updateData.goal = { disconnect: true };
+    } else {
+      updateData.goal = { connect: { id: data.goalId } };
     }
   }
 
@@ -254,7 +263,7 @@ export async function processRecurring() {
   for (const recurring of dueRecurring) {
     try {
       await prisma.$transaction(async (tx) => {
-        // Create the transaction, inheriting accountId from the recurring template
+        // Create the transaction, inheriting accountId and goalId from the recurring template
         await tx.transaction.create({
           data: {
             type: recurring.type,
@@ -267,6 +276,7 @@ export async function processRecurring() {
             userId: recurring.userId,
             recurringId: recurring.id,
             accountId: recurring.accountId,
+            goalId: recurring.goalId,
           },
         });
 
@@ -289,6 +299,11 @@ export async function processRecurring() {
           data: { nextExecutionDate: nextDate },
         });
       });
+
+      // Check auto-complete for the goal
+      if (recurring.goalId) {
+        await checkAutoComplete(recurring.goalId);
+      }
 
       results.processed++;
     } catch {

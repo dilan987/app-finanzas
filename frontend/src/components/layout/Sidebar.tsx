@@ -11,6 +11,7 @@ import {
   HiDocumentText,
   HiChevronDoubleLeft,
   HiArrowRightOnRectangle,
+  HiFlag,
 } from 'react-icons/hi2';
 import { useUiStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { label: 'Transacciones', path: '/transactions', icon: <HiArrowsRightLeft className="h-5 w-5" /> },
   { label: 'Categorias', path: '/categories', icon: <HiTag className="h-5 w-5" /> },
   { label: 'Presupuestos', path: '/budgets', icon: <HiCalculator className="h-5 w-5" /> },
+  { label: 'Metas', path: '/goals', icon: <HiFlag className="h-5 w-5" /> },
   { label: 'Recurrentes', path: '/recurring', icon: <HiArrowPath className="h-5 w-5" /> },
   { label: 'Inversiones', path: '/investments', icon: <HiChartBar className="h-5 w-5" /> },
   { label: 'Analisis', path: '/analytics', icon: <HiChartPie className="h-5 w-5" /> },

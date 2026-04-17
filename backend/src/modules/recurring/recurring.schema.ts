@@ -25,6 +25,7 @@ export const createRecurringSchema = z.object({
   }),
   currency: z.string().length(3, 'Currency must be a 3-letter code').default('COP'),
   accountId: z.string().min(1, 'Account ID is required').optional().nullable(),
+  goalId: z.string().min(1, 'Goal ID is required').optional().nullable(),
 });
 
 export const updateRecurringSchema = z.object({
@@ -61,6 +62,7 @@ export const updateRecurringSchema = z.object({
     .optional(),
   currency: z.string().length(3, 'Currency must be a 3-letter code').optional(),
   accountId: z.string().min(1, 'Account ID is required').nullable().optional(),
+  goalId: z.string().min(1, 'Goal ID is required').nullable().optional(),
 });
 
 export const toggleActiveSchema = z.object({

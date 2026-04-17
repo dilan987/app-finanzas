@@ -15,6 +15,7 @@ import {
   HiUserCircle,
   HiCog6Tooth,
   HiXMark,
+  HiFlag,
 } from 'react-icons/hi2';
 
 interface BottomTabBarProps {
@@ -22,6 +23,7 @@ interface BottomTabBarProps {
 }
 
 const moreItems = [
+  { label: 'Metas', path: '/goals', icon: <HiFlag className="h-5 w-5" /> },
   { label: 'Categorias', path: '/categories', icon: <HiTag className="h-5 w-5" /> },
   { label: 'Recurrentes', path: '/recurring', icon: <HiArrowPath className="h-5 w-5" /> },
   { label: 'Inversiones', path: '/investments', icon: <HiChartBar className="h-5 w-5" /> },
