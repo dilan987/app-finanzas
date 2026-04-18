@@ -202,7 +202,7 @@ export default function BudgetsPage() {
     setSaving(true);
     try {
       if (editingId) {
-        const data: UpdateBudgetData = { name: form.name.trim(), amount };
+        const data: UpdateBudgetData = { name: form.name.trim(), categoryId: form.categoryId || null, amount };
         await budgetsApi.update(editingId, data);
         toast.success('Item actualizado');
       } else {
@@ -279,7 +279,8 @@ export default function BudgetsPage() {
     actualTotal: number,
   ) => {
     if (sectionItems.length === 0) return null;
-    const diff = total - actualTotal;
+    const diff = actualTotal - total;
+    const isGood = type === 'INCOME' ? diff >= 0 : diff <= 0;
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -287,7 +288,7 @@ export default function BudgetsPage() {
           <div className="flex items-center gap-3 text-sm">
             <span className="text-text-secondary">Proyectado: <span className="font-semibold text-text-primary">{formatCurrency(total)}</span></span>
             <span className="text-text-secondary">Real: <span className="font-semibold text-text-primary">{formatCurrency(actualTotal)}</span></span>
-            <span className={`font-semibold ${diff >= 0 ? 'text-income' : 'text-expense'}`}>
+            <span className={`font-semibold ${isGood ? 'text-income' : 'text-expense'}`}>
               {diff >= 0 ? '+' : '-'}{formatCurrency(Math.abs(diff))}
             </span>
           </div>
@@ -295,8 +296,10 @@ export default function BudgetsPage() {
 
         <div className="space-y-3">
           {sectionItems.map((item) => {
-            const itemDiff = item.budgetAmount - item.actualAmount;
-            const isOver = item.actualAmount > item.budgetAmount;
+            const itemDiff = type === 'INCOME'
+              ? item.actualAmount - item.budgetAmount
+              : item.budgetAmount - item.actualAmount;
+            const isItemGood = itemDiff >= 0;
             return (
               <div
                 key={item.id}
@@ -337,9 +340,9 @@ export default function BudgetsPage() {
                     <div className="w-20 text-right">
                       {item.categoryId ? (
                         <p className={`text-sm font-semibold ${
-                          isOver ? 'text-expense' : 'text-income'
+                          isItemGood ? 'text-income' : 'text-expense'
                         }`}>
-                          {isOver ? '-' : '+'}{formatCurrency(Math.abs(itemDiff))}
+                          {itemDiff >= 0 ? '+' : '-'}{formatCurrency(Math.abs(itemDiff))}
                         </p>
                       ) : (
                         <span className="text-text-tertiary">&mdash;</span>
@@ -348,8 +351,8 @@ export default function BudgetsPage() {
 
                     <div className="w-20">
                       {item.categoryId ? (
-                        <Badge variant={isOver ? 'critical' : item.percentage > 70 ? 'warning' : 'income'}>
-                          {isOver ? (type === 'EXPENSE' ? 'Excedido' : 'Superado') : (item.percentage ?? 0) > 70 ? `${(item.percentage ?? 0).toFixed(0)}%` : 'Bien'}
+                        <Badge variant={!isItemGood ? 'critical' : item.percentage > 70 ? 'warning' : 'income'}>
+                          {!isItemGood ? (type === 'EXPENSE' ? 'Excedido' : 'Bajo') : item.actualAmount > item.budgetAmount ? 'Superado' : (item.percentage ?? 0) > 70 ? `${(item.percentage ?? 0).toFixed(0)}%` : 'Bien'}
                         </Badge>
                       ) : (
                         <Badge variant="info">Ref.</Badge>

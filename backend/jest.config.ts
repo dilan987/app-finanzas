@@ -10,6 +10,9 @@ const config: Config = {
   collectCoverageFrom: ['src/**/*.ts', '!src/index.ts'],
   coverageDirectory: 'coverage',
   clearMocks: true,
+  transform: {
+    '^.+\\.ts$': ['ts-jest', { tsconfig: { rootDir: '.', types: ['jest', 'node'] } }],
+  },
 };
 
 export default config;

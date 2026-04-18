@@ -111,6 +111,11 @@ export async function update(id: string, userId: string, data: UpdateBudgetInput
   if (data.name !== undefined) {
     updateData.name = data.name;
   }
+  if (data.categoryId !== undefined) {
+    updateData.category = data.categoryId
+      ? { connect: { id: data.categoryId } }
+      : { disconnect: true };
+  }
 
   const updated = await prisma.budget.update({
     where: { id },
@@ -291,24 +296,37 @@ export async function getMonthSummary(userId: string, month: number, year: numbe
   const totalActualIncome = totalIncomeResult._sum?.amount?.toNumber() ?? 0;
   const totalActualExpenses = totalExpensesResult._sum?.amount?.toNumber() ?? 0;
 
-  // Unplanned expenses (in categories not covered by any expense budget item)
+  // Unplanned expenses = excess over budget + expenses in unbudgeted categories
   const plannedExpenseCategoryIds = budgets
     .filter(b => b.type === 'EXPENSE' && b.categoryId)
     .map(b => b.categoryId!);
 
   let unplannedExpenses = 0;
-  if (plannedExpenseCategoryIds.length > 0) {
-    const unplannedResult = await prisma.transaction.aggregate({
-      where: {
-        userId,
-        type: TransactionType.EXPENSE,
-        date: { gte: startDate, lte: endDate },
-        categoryId: { notIn: plannedExpenseCategoryIds },
-        ...onBudgetFilter,
-      },
+  if (expenseItems.length > 0 || plannedExpenseCategoryIds.length > 0) {
+    const excessOverBudget = expenseItems.reduce(
+      (sum, item) => sum + Math.max(0, item.actualAmount - item.budgetAmount), 0,
+    );
+
+    const unbudgetedWhere: Prisma.TransactionWhereInput = {
+      userId,
+      type: TransactionType.EXPENSE,
+      date: { gte: startDate, lte: endDate },
+      ...onBudgetFilter,
+      OR: [
+        ...(plannedExpenseCategoryIds.length > 0
+          ? [{ categoryId: { notIn: plannedExpenseCategoryIds } }]
+          : []),
+        { categoryId: null },
+      ],
+    };
+
+    const unbudgetedResult = await prisma.transaction.aggregate({
+      where: unbudgetedWhere,
       _sum: { amount: true },
     });
-    unplannedExpenses = unplannedResult._sum?.amount?.toNumber() ?? 0;
+    const unbudgetedExpenses = unbudgetedResult._sum?.amount?.toNumber() ?? 0;
+
+    unplannedExpenses = excessOverBudget + unbudgetedExpenses;
   } else {
     unplannedExpenses = totalActualExpenses;
   }
