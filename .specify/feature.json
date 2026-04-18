@@ -1,6 +1,6 @@
 {
-  "current_feature": "006-smart-projections",
-  "spec_path": "specs/006-smart-projections/spec.md",
-  "status": "implemented",
-  "created_at": "2026-04-16"
+  "current_feature": "007-unplanned-expenses-fix",
+  "spec_path": "specs/007-unplanned-expenses-fix/spec.md",
+  "created_at": "2026-04-17",
+  "status": "implemented"
 }

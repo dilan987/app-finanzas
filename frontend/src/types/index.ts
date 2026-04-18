@@ -415,6 +415,7 @@ export interface CreateBudgetData {
 
 export interface UpdateBudgetData {
   name?: string;
+  categoryId?: string | null;
   amount?: number;
 }
 

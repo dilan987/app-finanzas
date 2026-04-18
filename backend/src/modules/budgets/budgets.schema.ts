@@ -22,6 +22,7 @@ export const createBudgetSchema = z.object({
 
 export const updateBudgetSchema = z.object({
   name: z.string().max(100).optional(),
+  categoryId: z.string().uuid().nullable().optional(),
   amount: z
     .number()
     .positive('Amount must be a positive number')

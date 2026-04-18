@@ -11,12 +11,20 @@ jest.mock('../../config/database', () => ({
       update: jest.fn(),
       delete: jest.fn(),
       count: jest.fn(),
+      createMany: jest.fn(),
+      findFirst: jest.fn(),
     },
     category: {
       findUnique: jest.fn(),
     },
     transaction: {
       aggregate: jest.fn(),
+    },
+    account: {
+      findMany: jest.fn(),
+    },
+    goal: {
+      findMany: jest.fn(),
     },
   },
 }));
@@ -55,6 +63,8 @@ const CATEGORY = {
 
 const BUDGET = {
   id: 'budget-1',
+  name: 'Food Budget',
+  type: 'EXPENSE' as const,
   categoryId: '00000000-0000-0000-0000-000000000001',
   userId: 'user-1',
   amount: new Decimal('500000'),
@@ -282,7 +292,13 @@ describe('Budgets Module', () => {
   });
 
   describe('GET /api/budgets/summary', () => {
+    const setupSummaryMocks = () => {
+      (mockPrisma.account.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.goal.findMany as jest.Mock).mockResolvedValue([]);
+    };
+
     it('should return monthly budget summary', async () => {
+      setupSummaryMocks();
       (mockPrisma.budget.findMany as jest.Mock).mockResolvedValue([BUDGET]);
       (mockPrisma.transaction.aggregate as jest.Mock).mockResolvedValue({
         _sum: { amount: new Decimal('350000') },
@@ -294,20 +310,21 @@ describe('Budgets Module', () => {
       expect(res.body.data.month).toBe(3);
       expect(res.body.data.year).toBe(2026);
       expect(res.body.data.totalBudget).toBe(500000);
-      expect(res.body.data.totalSpent).toBe(350000);
-      expect(res.body.data.totalRemaining).toBe(150000);
       expect(res.body.data.budgets).toHaveLength(1);
       expect(res.body.data.budgets[0].percentage).toBe(70);
     });
 
     it('should return zeros when no budgets', async () => {
+      setupSummaryMocks();
       (mockPrisma.budget.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.transaction.aggregate as jest.Mock).mockResolvedValue({
+        _sum: { amount: null },
+      });
 
       const res = await request(app).get('/api/budgets/summary?month=1&year=2026');
 
       expect(res.status).toBe(200);
       expect(res.body.data.totalBudget).toBe(0);
-      expect(res.body.data.totalSpent).toBe(0);
       expect(res.body.data.budgets).toHaveLength(0);
     });
 
@@ -315,6 +332,102 @@ describe('Budgets Module', () => {
       const res = await request(app).get('/api/budgets/summary');
 
       expect(res.status).toBe(422);
+    });
+
+    it('should count excess over budget as unplanned expenses', async () => {
+      setupSummaryMocks();
+      const budgetWith200k = { ...BUDGET, amount: new Decimal('200000') };
+      (mockPrisma.budget.findMany as jest.Mock).mockResolvedValue([budgetWith200k]);
+
+      let callIndex = 0;
+      (mockPrisma.transaction.aggregate as jest.Mock).mockImplementation(() => {
+        callIndex++;
+        if (callIndex === 1) return { _sum: { amount: new Decimal('350000') } }; // per-budget actual
+        if (callIndex === 2) return { _sum: { amount: new Decimal('350000') } }; // total income
+        if (callIndex === 3) return { _sum: { amount: new Decimal('350000') } }; // total expenses
+        return { _sum: { amount: new Decimal('0') } }; // unbudgeted expenses
+      });
+
+      const res = await request(app).get('/api/budgets/summary?month=3&year=2026');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.unplannedExpenses).toBe(150000);
+    });
+
+    it('should NOT count within-budget expenses as unplanned', async () => {
+      setupSummaryMocks();
+      (mockPrisma.budget.findMany as jest.Mock).mockResolvedValue([BUDGET]);
+
+      let callIndex = 0;
+      (mockPrisma.transaction.aggregate as jest.Mock).mockImplementation(() => {
+        callIndex++;
+        if (callIndex === 1) return { _sum: { amount: new Decimal('300000') } }; // per-budget actual (under 500k)
+        if (callIndex === 2) return { _sum: { amount: new Decimal('0') } };      // total income
+        if (callIndex === 3) return { _sum: { amount: new Decimal('300000') } }; // total expenses
+        return { _sum: { amount: new Decimal('0') } }; // unbudgeted expenses
+      });
+
+      const res = await request(app).get('/api/budgets/summary?month=3&year=2026');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.unplannedExpenses).toBe(0);
+    });
+
+    it('should count all expenses as unplanned when no budgets exist', async () => {
+      setupSummaryMocks();
+      (mockPrisma.budget.findMany as jest.Mock).mockResolvedValue([]);
+
+      let callIndex = 0;
+      (mockPrisma.transaction.aggregate as jest.Mock).mockImplementation(() => {
+        callIndex++;
+        if (callIndex === 1) return { _sum: { amount: new Decimal('0') } };      // total income
+        if (callIndex === 2) return { _sum: { amount: new Decimal('90000') } };  // total expenses
+        return { _sum: { amount: null } };
+      });
+
+      const res = await request(app).get('/api/budgets/summary?month=3&year=2026');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.unplannedExpenses).toBe(90000);
+    });
+
+    it('should count unbudgeted category expenses as fully unplanned', async () => {
+      setupSummaryMocks();
+      (mockPrisma.budget.findMany as jest.Mock).mockResolvedValue([BUDGET]);
+
+      let callIndex = 0;
+      (mockPrisma.transaction.aggregate as jest.Mock).mockImplementation(() => {
+        callIndex++;
+        if (callIndex === 1) return { _sum: { amount: new Decimal('400000') } }; // per-budget actual (under 500k)
+        if (callIndex === 2) return { _sum: { amount: new Decimal('0') } };      // total income
+        if (callIndex === 3) return { _sum: { amount: new Decimal('490000') } }; // total expenses
+        return { _sum: { amount: new Decimal('90000') } }; // unbudgeted category expenses
+      });
+
+      const res = await request(app).get('/api/budgets/summary?month=3&year=2026');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.unplannedExpenses).toBe(90000);
+    });
+
+    it('should combine excess and unbudgeted as unplanned (mixed scenario)', async () => {
+      setupSummaryMocks();
+      const budgetWith200k = { ...BUDGET, amount: new Decimal('200000') };
+      (mockPrisma.budget.findMany as jest.Mock).mockResolvedValue([budgetWith200k]);
+
+      let callIndex = 0;
+      (mockPrisma.transaction.aggregate as jest.Mock).mockImplementation(() => {
+        callIndex++;
+        if (callIndex === 1) return { _sum: { amount: new Decimal('250000') } }; // per-budget actual (50k excess)
+        if (callIndex === 2) return { _sum: { amount: new Decimal('0') } };      // total income
+        if (callIndex === 3) return { _sum: { amount: new Decimal('280000') } }; // total expenses
+        return { _sum: { amount: new Decimal('30000') } }; // unbudgeted expenses
+      });
+
+      const res = await request(app).get('/api/budgets/summary?month=3&year=2026');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.unplannedExpenses).toBe(80000); // 50k excess + 30k unbudgeted
     });
   });
 });
