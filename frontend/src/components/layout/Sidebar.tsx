@@ -53,6 +53,7 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
+        data-tour-sidebar
         className={`
           fixed inset-y-0 left-0 z-sidebar flex flex-col border-r border-border-primary
           bg-surface-card transition-all duration-normal

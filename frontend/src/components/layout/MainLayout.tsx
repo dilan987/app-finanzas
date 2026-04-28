@@ -5,9 +5,12 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import BottomTabBar from './BottomTabBar';
 import PageTransition from './PageTransition';
+import { TourProvider } from '../onboarding';
+import { useOnboardingTour } from '../../hooks/useOnboardingTour';
 
 export default function MainLayout() {
   const { sidebarCollapsed } = useUiStore();
+  useOnboardingTour();
 
   return (
     <div className="min-h-screen bg-surface-primary">
@@ -31,6 +34,8 @@ export default function MainLayout() {
 
       {/* Mobile bottom tabs - Add navigates to transactions page */}
       <BottomTabBar onAddClick={() => window.location.assign('/transactions?add=true')} />
+
+      <TourProvider />
     </div>
   );
 }

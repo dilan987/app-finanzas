@@ -96,7 +96,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6" data-tour="reports-export">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-text-primary">

@@ -10,11 +10,13 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import AccountCard from '../components/accounts/AccountCard';
 import AccountForm from '../components/accounts/AccountForm';
 import { useAccountStore } from '../store/accountStore';
+import { useOnboardingStore } from '../store/onboardingStore';
 import { formatCurrency } from '../utils/formatCurrency';
 import type { Account, CreateAccountData, UpdateAccountData } from '../types';
 
 export default function AccountsPage() {
   const { accounts, summary, fetchAccounts, fetchSummary, createAccount, updateAccount, deleteAccount, loading } = useAccountStore();
+  const resumeFromModal = useOnboardingStore((s) => s.resumeFromModal);
 
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -26,12 +28,23 @@ export default function AccountsPage() {
     fetchSummary();
   }, [fetchAccounts, fetchSummary]);
 
+  useEffect(() => {
+    const handler = () => setShowForm(true);
+    window.addEventListener('onboarding:create-account', handler);
+    return () => window.removeEventListener('onboarding:create-account', handler);
+  }, []);
+
+  const closeForm = () => {
+    closeForm();
+    resumeFromModal();
+  };
+
   const handleCreate = async (data: CreateAccountData | UpdateAccountData) => {
     setSubmitting(true);
     try {
       await createAccount(data as CreateAccountData);
       toast.success('Cuenta creada exitosamente');
-      setShowForm(false);
+      closeForm();
     } catch {
       toast.error('Error al crear la cuenta');
     } finally {
@@ -76,7 +89,7 @@ export default function AccountsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-tour="accounts-list">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -169,13 +182,13 @@ export default function AccountsPage() {
       {/* Create Modal */}
       <Modal
         isOpen={showForm}
-        onClose={() => setShowForm(false)}
+        onClose={() => closeForm()}
         title="Nueva cuenta"
         size="lg"
       >
         <AccountForm
           onSubmit={handleCreate}
-          onCancel={() => setShowForm(false)}
+          onCancel={() => closeForm()}
           loading={submitting}
         />
       </Modal>

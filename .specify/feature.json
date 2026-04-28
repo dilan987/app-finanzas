@@ -1,6 +1,9 @@
 {
-  "current_feature": "007-unplanned-expenses-fix",
-  "spec_path": "specs/007-unplanned-expenses-fix/spec.md",
-  "created_at": "2026-04-17",
+  "current_feature": "008-onboarding-tour",
+  "spec_path": "specs/008-onboarding-tour/spec.md",
+  "plan_path": "specs/008-onboarding-tour/plan.md",
+  "tasks_path": "specs/008-onboarding-tour/tasks.md",
+  "created_at": "2026-04-27",
+  "implemented_at": "2026-04-27",
   "status": "implemented"
 }

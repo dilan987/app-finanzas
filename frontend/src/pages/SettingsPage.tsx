@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   HiUser,
@@ -8,6 +9,7 @@ import {
   HiTrash,
   HiEye,
   HiEyeSlash,
+  HiAcademicCap,
 } from 'react-icons/hi2';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -15,6 +17,7 @@ import Select from '../components/ui/Select';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
+import { useOnboardingStore } from '../store/onboardingStore';
 import { usersApi } from '../api/users.api';
 
 const CURRENCY_OPTIONS = [
@@ -23,9 +26,18 @@ const CURRENCY_OPTIONS = [
   { value: 'EUR', label: 'EUR - Euro' },
 ];
 
+const TOUR_STATUS_LABEL: Record<'NOT_STARTED' | 'COMPLETED' | 'SKIPPED', string> = {
+  NOT_STARTED: 'No iniciado',
+  COMPLETED: 'Completado',
+  SKIPPED: 'Saltado',
+};
+
 export default function SettingsPage() {
   const { user, setUser, logout } = useAuthStore();
   const { theme, setTheme } = useUiStore();
+  const navigate = useNavigate();
+  const tourStatus = useOnboardingStore((s) => s.status);
+  const restartTour = useOnboardingStore((s) => s.restart);
 
   // Profile state
   const [name, setName] = useState(user?.name ?? '');
@@ -216,6 +228,42 @@ export default function SettingsPage() {
                 <p className="text-xs text-text-tertiary">Tema de noche</p>
               </div>
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Onboarding Tour Card */}
+      <div className="rounded-xl border border-border-primary bg-surface-card p-6 shadow-card">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-400">
+              <HiAcademicCap className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary">Tour de bienvenida</h2>
+              <p className="text-sm text-text-secondary">
+                Recorrido guiado por las secciones de la app
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-lg bg-surface-secondary p-4 dark:bg-surface-tertiary">
+            <div>
+              <p className="text-sm font-medium text-text-primary">Estado actual</p>
+              <p className="mt-1 text-xs text-text-secondary">
+                {TOUR_STATUS_LABEL[tourStatus]}
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                await restartTour();
+                navigate('/dashboard');
+                toast.success('Tour reiniciado');
+              }}
+            >
+              Reiniciar tour de bienvenida
+            </Button>
           </div>
         </div>
       </div>

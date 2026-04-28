@@ -200,9 +200,11 @@ export default function TransactionsPage() {
             {pagination ? `${pagination.total} transacciones encontradas` : 'Cargando...'}
           </p>
         </div>
-        <Button icon={<HiPlus className="h-4 w-4" />} onClick={openCreateModal}>
-          Agregar
-        </Button>
+        <span data-tour="transactions-create">
+          <Button icon={<HiPlus className="h-4 w-4" />} onClick={openCreateModal}>
+            Agregar
+          </Button>
+        </span>
       </div>
 
       {/* Type Tabs + Search + Filters */}

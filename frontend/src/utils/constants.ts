@@ -136,3 +136,13 @@ export const CONTRIBUTION_FREQUENCIES: { value: ContributionFrequency; label: st
 ];
 
 export const ITEMS_PER_PAGE = 20;
+
+export const MONTH_NAMES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+] as const;
+
+export function getMonthLabel(month: number | null): string {
+  if (month == null || month < 1 || month > 12) return '';
+  return MONTH_NAMES[month - 1] ?? '';
+}

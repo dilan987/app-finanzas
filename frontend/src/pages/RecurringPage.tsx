@@ -21,6 +21,8 @@ import { recurringApi } from '../api/recurring.api';
 import { categoriesApi } from '../api/categories.api';
 import { accountsApi } from '../api/accounts.api';
 import { goalsApi } from '../api/goals.api';
+import { useFormModal } from '../hooks/useFormModal';
+import { useDeleteConfirm } from '../hooks/useDeleteConfirm';
 import { formatCurrency } from '../utils/formatCurrency';
 import { formatShortDate } from '../utils/formatDate';
 import { FREQUENCIES, PAYMENT_METHODS } from '../utils/constants';
@@ -67,16 +69,20 @@ function getFrequencyLabel(freq: Frequency): string {
 export default function RecurringPage() {
   const [items, setItems] = useState<RecurringTransaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<RecurringFormState>(initialForm);
-  const [saving, setSaving] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [activeGoals, setActiveGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const modal = useFormModal<RecurringFormState>(initialForm);
+
+  const deleteConfirm = useDeleteConfirm(
+    async (id) => {
+      await recurringApi.delete(id);
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    },
+    { successMessage: 'Recurrencia eliminada', errorMessage: 'Error al eliminar recurrencia' },
+  );
 
   const loadData = useCallback(async () => {
     try {
@@ -97,21 +103,12 @@ export default function RecurringPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const filteredCategories = categories.filter((c) => c.type === form.type);
-
-  const openCreate = () => {
-    setEditingId(null);
-    setForm(initialForm);
-    setModalOpen(true);
-  };
+  const filteredCategories = categories.filter((c) => c.type === modal.form.type);
 
   const openEdit = (item: RecurringTransaction) => {
-    setEditingId(item.id);
-    setForm({
+    modal.openEdit(item.id, {
       type: item.type,
       amount: String(item.amount),
       description: item.description ?? '',
@@ -122,7 +119,6 @@ export default function RecurringPage() {
       accountId: item.accountId ?? '',
       goalId: (item as any).goalId ?? '',
     });
-    setModalOpen(true);
   };
 
   const handleToggle = async (item: RecurringTransaction) => {
@@ -139,68 +135,42 @@ export default function RecurringPage() {
   };
 
   const handleSubmit = async () => {
-    if (!form.description || !form.amount || !form.categoryId) {
+    if (!modal.form.description || !modal.form.amount || !modal.form.categoryId) {
       toast.error('Completa todos los campos obligatorios');
       return;
     }
-    const amount = parseFloat(form.amount);
+    const amount = parseFloat(modal.form.amount);
     if (isNaN(amount) || amount <= 0) {
       toast.error('El monto debe ser mayor a 0');
       return;
     }
-    setSaving(true);
+    modal.setSaving(true);
     try {
-      if (editingId) {
-        const data: UpdateRecurringData = {
-          type: form.type,
-          amount,
-          description: form.description,
-          categoryId: form.categoryId,
-          frequency: form.frequency,
-          nextExecutionDate: form.nextExecutionDate,
-          paymentMethod: form.paymentMethod,
-          accountId: form.accountId || null,
-          goalId: form.goalId || null,
-        };
-        const res = await recurringApi.update(editingId, data);
-        setItems((prev) => prev.map((i) => (i.id === editingId ? res.data.data : i)));
+      const payload = {
+        type: modal.form.type,
+        amount,
+        description: modal.form.description,
+        categoryId: modal.form.categoryId,
+        frequency: modal.form.frequency,
+        nextExecutionDate: modal.form.nextExecutionDate,
+        paymentMethod: modal.form.paymentMethod,
+        accountId: modal.form.accountId || null,
+        goalId: modal.form.goalId || null,
+      };
+      if (modal.editingId) {
+        const res = await recurringApi.update(modal.editingId, payload as UpdateRecurringData);
+        setItems((prev) => prev.map((i) => (i.id === modal.editingId ? res.data.data : i)));
         toast.success('Recurrencia actualizada');
       } else {
-        const data: CreateRecurringData = {
-          type: form.type,
-          amount,
-          description: form.description,
-          categoryId: form.categoryId,
-          frequency: form.frequency,
-          nextExecutionDate: form.nextExecutionDate,
-          paymentMethod: form.paymentMethod,
-          accountId: form.accountId || null,
-          goalId: form.goalId || null,
-        };
-        const res = await recurringApi.create(data);
+        const res = await recurringApi.create(payload as CreateRecurringData);
         setItems((prev) => [...prev, res.data.data]);
         toast.success('Recurrencia creada');
       }
-      setModalOpen(false);
+      modal.close();
     } catch {
       toast.error('Error al guardar recurrencia');
     } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    setDeleting(true);
-    try {
-      await recurringApi.delete(deleteId);
-      setItems((prev) => prev.filter((i) => i.id !== deleteId));
-      toast.success('Recurrencia eliminada');
-      setDeleteId(null);
-    } catch {
-      toast.error('Error al eliminar recurrencia');
-    } finally {
-      setDeleting(false);
+      modal.setSaving(false);
     }
   };
 
@@ -213,55 +183,28 @@ export default function RecurringPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
+    <div className="space-y-6 p-6" data-tour="recurring-list">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">
-            Transacciones Recurrentes
-          </h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Gestiona pagos e ingresos que se repiten automaticamente
-          </p>
+          <h1 className="text-2xl font-bold text-text-primary">Transacciones Recurrentes</h1>
+          <p className="mt-1 text-sm text-text-secondary">Gestiona pagos e ingresos que se repiten automaticamente</p>
         </div>
-        <Button icon={<HiPlus className="h-4 w-4" />} onClick={openCreate}>
-          Nueva Recurrencia
-        </Button>
+        <Button icon={<HiPlus className="h-4 w-4" />} onClick={modal.openCreate}>Nueva Recurrencia</Button>
       </div>
 
-      {/* List */}
       {items.length === 0 ? (
-        <EmptyState
-          icon={<HiArrowPath className="h-8 w-8" />}
-          title="Sin recurrencias"
-          description="Configura pagos o ingresos que se repiten automaticamente."
-          actionLabel="Crear Recurrencia"
-          onAction={openCreate}
-        />
+        <EmptyState icon={<HiArrowPath className="h-8 w-8" />} title="Sin recurrencias" description="Configura pagos o ingresos que se repiten automaticamente." actionLabel="Crear Recurrencia" onAction={modal.openCreate} />
       ) : (
         <div className="space-y-3">
           {items.map((item) => (
-            <div
-              key={item.id}
-              className={`group rounded-xl border border-border-primary bg-surface-card p-4 shadow-card transition-all hover:shadow-card-hover ${
-                !item.isActive ? 'opacity-60' : ''
-              }`}
-            >
+            <div key={item.id} className={`group rounded-xl border border-border-primary bg-surface-card p-4 shadow-card transition-all hover:shadow-card-hover ${!item.isActive ? 'opacity-60' : ''}`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                {/* Left: Info */}
                 <div className="flex items-center gap-4 min-w-0 flex-1">
-                  <Toggle
-                    checked={item.isActive}
-                    onChange={() => handleToggle(item)}
-                    disabled={togglingId === item.id}
-                    size="sm"
-                  />
+                  <Toggle checked={item.isActive} onChange={() => handleToggle(item)} disabled={togglingId === item.id} size="sm" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-text-primary truncate">{item.description}</p>
-                      <Badge variant={item.type === 'INCOME' ? 'income' : 'expense'}>
-                        {item.type === 'INCOME' ? 'Ingreso' : 'Gasto'}
-                      </Badge>
+                      <Badge variant={item.type === 'INCOME' ? 'income' : 'expense'}>{item.type === 'INCOME' ? 'Ingreso' : 'Gasto'}</Badge>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
                       {item.category?.name && <span>{item.category.name}</span>}
@@ -271,30 +214,13 @@ export default function RecurringPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Right: Amount + Actions */}
                 <div className="flex items-center gap-4">
-                  <p className={`text-lg font-bold whitespace-nowrap ${
-                    item.type === 'INCOME' ? 'text-income' : 'text-expense'
-                  }`}>
+                  <p className={`text-lg font-bold whitespace-nowrap ${item.type === 'INCOME' ? 'text-income' : 'text-expense'}`}>
                     {item.type === 'INCOME' ? '+' : '-'}{formatCurrency(item.amount)}
                   </p>
-
                   <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button
-                      onClick={() => openEdit(item)}
-                      className="rounded-lg p-1.5 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary transition-colors"
-                      aria-label="Editar"
-                    >
-                      <HiPencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteId(item.id)}
-                      className="rounded-lg p-1.5 text-text-tertiary hover:bg-expense-bg hover:text-expense transition-colors"
-                      aria-label="Eliminar"
-                    >
-                      <HiTrash className="h-4 w-4" />
-                    </button>
+                    <button onClick={() => openEdit(item)} className="rounded-lg p-1.5 text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary transition-colors" aria-label="Editar"><HiPencil className="h-4 w-4" /></button>
+                    <button onClick={() => deleteConfirm.requestDelete(item.id)} className="rounded-lg p-1.5 text-text-tertiary hover:bg-expense-bg hover:text-expense transition-colors" aria-label="Eliminar"><HiTrash className="h-4 w-4" /></button>
                   </div>
                 </div>
               </div>
@@ -303,137 +229,35 @@ export default function RecurringPage() {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editingId ? 'Editar Recurrencia' : 'Nueva Recurrencia'}
-        size="lg"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} loading={saving}>
-              {editingId ? 'Guardar Cambios' : 'Crear Recurrencia'}
-            </Button>
-          </>
-        }
-      >
+      <Modal isOpen={modal.isOpen} onClose={modal.close} title={modal.editingId ? 'Editar Recurrencia' : 'Nueva Recurrencia'} size="lg" footer={<><Button variant="secondary" onClick={modal.close} disabled={modal.saving}>Cancelar</Button><Button onClick={handleSubmit} loading={modal.saving}>{modal.editingId ? 'Guardar Cambios' : 'Crear Recurrencia'}</Button></>}>
         <div className="space-y-4">
-          {/* Type Toggle */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-text-secondary">
-              Tipo
-            </label>
+            <label className="mb-1 block text-sm font-medium text-text-secondary">Tipo</label>
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setForm((f) => ({ ...f, type: 'EXPENSE', categoryId: '' }))}
-                className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                  form.type === 'EXPENSE'
-                    ? 'border-expense bg-expense-bg text-expense'
-                    : 'border-border-primary text-text-tertiary hover:bg-surface-tertiary'
-                }`}
-              >
-                Gasto
-              </button>
-              <button
-                type="button"
-                onClick={() => setForm((f) => ({ ...f, type: 'INCOME', categoryId: '' }))}
-                className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                  form.type === 'INCOME'
-                    ? 'border-income bg-income-bg text-income'
-                    : 'border-border-primary text-text-tertiary hover:bg-surface-tertiary'
-                }`}
-              >
-                Ingreso
-              </button>
+              <button type="button" onClick={() => modal.setForm((f) => ({ ...f, type: 'EXPENSE', categoryId: '' }))} className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${modal.form.type === 'EXPENSE' ? 'border-expense bg-expense-bg text-expense' : 'border-border-primary text-text-tertiary hover:bg-surface-tertiary'}`}>Gasto</button>
+              <button type="button" onClick={() => modal.setForm((f) => ({ ...f, type: 'INCOME', categoryId: '' }))} className={`flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${modal.form.type === 'INCOME' ? 'border-income bg-income-bg text-income' : 'border-border-primary text-text-tertiary hover:bg-surface-tertiary'}`}>Ingreso</button>
             </div>
           </div>
-          <Input
-            label="Descripcion"
-            placeholder="Ej: Arriendo, Salario..."
-            value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-          />
-          <CurrencyInput
-            label="Monto"
-            placeholder="0"
-            value={form.amount}
-            onChange={(v) => setForm((f) => ({ ...f, amount: v }))}
-          />
-          <Select
-            label="Categoria"
-            options={filteredCategories.map((c) => ({ value: c.id, label: c.name }))}
-            placeholder="Seleccionar categoria"
-            value={form.categoryId}
-            onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
-          />
+          <Input label="Descripcion" placeholder="Ej: Arriendo, Salario..." value={modal.form.description} onChange={(e) => modal.setForm((f) => ({ ...f, description: e.target.value }))} />
+          <CurrencyInput label="Monto" placeholder="0" value={modal.form.amount} onChange={(v) => modal.setForm((f) => ({ ...f, amount: v }))} />
+          <Select label="Categoria" options={filteredCategories.map((c) => ({ value: c.id, label: c.name }))} placeholder="Seleccionar categoria" value={modal.form.categoryId} onChange={(e) => modal.setForm((f) => ({ ...f, categoryId: e.target.value }))} />
           <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Frecuencia"
-              options={FREQUENCIES}
-              value={form.frequency}
-              onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value as Frequency }))}
-            />
-            <Select
-              label="Metodo de pago"
-              options={PAYMENT_METHODS}
-              value={form.paymentMethod}
-              onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value as PaymentMethod }))}
-            />
+            <Select label="Frecuencia" options={FREQUENCIES} value={modal.form.frequency} onChange={(e) => modal.setForm((f) => ({ ...f, frequency: e.target.value as Frequency }))} />
+            <Select label="Metodo de pago" options={PAYMENT_METHODS} value={modal.form.paymentMethod} onChange={(e) => modal.setForm((f) => ({ ...f, paymentMethod: e.target.value as PaymentMethod }))} />
           </div>
           {accounts.length > 0 && (
-            <Select
-              label="Cuenta"
-              options={[
-                { value: '', label: 'Sin cuenta' },
-                ...accounts.map((a) => ({ value: a.id, label: a.name })),
-              ]}
-              value={form.accountId}
-              onChange={(e) => setForm((f) => ({ ...f, accountId: e.target.value }))}
-            />
+            <Select label="Cuenta" options={[{ value: '', label: 'Sin cuenta' }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]} value={modal.form.accountId} onChange={(e) => modal.setForm((f) => ({ ...f, accountId: e.target.value }))} />
           )}
-          {/* Goal (optional) */}
           {(() => {
-            const filteredGoals = activeGoals.filter((g) =>
-              form.type === 'EXPENSE' ? g.type === 'DEBT' : g.type === 'SAVINGS',
-            );
+            const filteredGoals = activeGoals.filter((g) => modal.form.type === 'EXPENSE' ? g.type === 'DEBT' : g.type === 'SAVINGS');
             if (filteredGoals.length === 0) return null;
-            return (
-              <Select
-                label="Meta (opcional)"
-                value={form.goalId}
-                onChange={(e) => setForm((f) => ({ ...f, goalId: e.target.value }))}
-                options={[
-                  { value: '', label: 'Sin meta' },
-                  ...filteredGoals.map((g) => ({
-                    value: g.id,
-                    label: `${g.name} (${Math.round(g.progress)}%)`,
-                  })),
-                ]}
-              />
-            );
+            return <Select label="Meta (opcional)" value={modal.form.goalId} onChange={(e) => modal.setForm((f) => ({ ...f, goalId: e.target.value }))} options={[{ value: '', label: 'Sin meta' }, ...filteredGoals.map((g) => ({ value: g.id, label: `${g.name} (${Math.round(g.progress)}%)` }))]} />;
           })()}
-          <DatePicker
-            label="Proxima ejecucion"
-            value={form.nextExecutionDate}
-            onChange={(e) => setForm((f) => ({ ...f, nextExecutionDate: e.target.value }))}
-          />
+          <DatePicker label="Proxima ejecucion" value={modal.form.nextExecutionDate} onChange={(e) => modal.setForm((f) => ({ ...f, nextExecutionDate: e.target.value }))} />
         </div>
       </Modal>
 
-      {/* Delete Confirmation */}
-      <ConfirmDialog
-        isOpen={deleteId !== null}
-        onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
-        title="Eliminar Recurrencia"
-        message="Estas seguro de que deseas eliminar esta recurrencia? Esta accion no se puede deshacer."
-        confirmLabel="Eliminar"
-        loading={deleting}
-      />
+      <ConfirmDialog isOpen={deleteConfirm.deleteId !== null} onClose={deleteConfirm.cancelDelete} onConfirm={deleteConfirm.confirmDelete} title="Eliminar Recurrencia" message="Estas seguro de que deseas eliminar esta recurrencia? Esta accion no se puede deshacer." confirmLabel="Eliminar" loading={deleteConfirm.deleting} />
     </div>
   );
 }

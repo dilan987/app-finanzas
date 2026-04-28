@@ -20,8 +20,14 @@ All user input MUST be validated with Zod schemas before reaching service layer.
 ### IV. Security First
 JWT authentication with short-lived access tokens (15min) and long-lived refresh tokens (7d, httpOnly cookies). bcrypt with 12 salt rounds for password hashing. Rate limiting on sensitive endpoints. Helmet.js for security headers. CORS restricted to configured origin. Never log sensitive data (passwords, tokens, card numbers).
 
-### V. Test Coverage
+### V. Zero-Vulnerability Dependencies (NON-NEGOTIABLE)
+No dependency with known security vulnerabilities may remain in the project. `npm audit` MUST report 0 vulnerabilities in both backend and frontend at all times. When a vulnerability is detected: (1) update the affected package to a patched version, or (2) if no patch exists, replace it with a secure alternative. Before adding any new dependency, verify it has no open CVEs or advisories. Run `npm audit` as part of CI/CD and block deployments on findings. Transitive dependency vulnerabilities MUST also be addressed (via overrides or upstream updates).
+
+### VI. Test Coverage
 Every module MUST have corresponding test files. Backend uses Jest + Supertest. Frontend uses Vitest + React Testing Library. Tests MUST cover happy path and critical error scenarios at minimum.
+
+### VII. DRY & Standardized Code (NON-NEGOTIABLE)
+Code MUST follow DRY (Don't Repeat Yourself) principles. Shared logic MUST be extracted into reusable utilities, helpers, or hooks — never duplicated across modules. Specifically: (1) Backend: common patterns (ownership verification, entity validation, pagination, balance operations, decimal serialization, date ranges) MUST use shared functions from `backend/src/utils/`. (2) Frontend: common UI patterns (modal state, delete confirmation, CRUD operations, list pagination) MUST use custom hooks from `frontend/src/hooks/`. (3) No function should exceed ~80 lines; break large functions into composable sub-functions. (4) All constants and magic strings MUST be centralized in dedicated constants files.
 
 ## Tech Stack
 
@@ -72,4 +78,4 @@ Every module MUST have corresponding test files. Backend uses Jest + Supertest. 
 - All new features MUST follow the SDD pipeline: Spec -> Plan -> Tasks -> Implement
 - Any deviation from constitution principles MUST be documented and justified in the feature's plan.md
 
-**Version**: 1.1.0 | **Ratified**: 2026-04-12 | **Last Amended**: 2026-04-12
+**Version**: 1.2.0 | **Ratified**: 2026-04-12 | **Last Amended**: 2026-04-27

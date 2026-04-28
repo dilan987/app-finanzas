@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { NotFoundError } from '../../utils/errors';
+import { toNumber } from '../../utils/helpers';
 import {
   CreateAccountInput,
   UpdateAccountInput,
@@ -8,37 +9,27 @@ import {
   ReorderAccountsInput,
 } from './accounts.schema';
 
+function serializeAccount(a: { initialBalance: Prisma.Decimal; currentBalance: Prisma.Decimal } & Record<string, unknown>) {
+  return { ...a, initialBalance: toNumber(a.initialBalance), currentBalance: toNumber(a.currentBalance) };
+}
+
 export async function getAll(userId: string, filters: GetAccountsQuery) {
   const where: Prisma.AccountWhereInput = { userId };
 
-  if (filters.isActive !== undefined) {
-    where.isActive = filters.isActive;
-  }
+  if (filters.isActive !== undefined) where.isActive = filters.isActive;
+  if (filters.type) where.type = filters.type;
+  if (filters.includeInBudget !== undefined) where.includeInBudget = filters.includeInBudget;
 
-  if (filters.type) {
-    where.type = filters.type;
-  }
-
-  if (filters.includeInBudget !== undefined) {
-    where.includeInBudget = filters.includeInBudget;
-  }
-
-  const accounts = await prisma.account.findMany({
+  return prisma.account.findMany({
     where,
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
   });
-
-  return accounts;
 }
 
 export async function getById(id: string, userId: string) {
   const account = await prisma.account.findUnique({ where: { id } });
 
-  if (!account) {
-    throw new NotFoundError('Account');
-  }
-
-  if (account.userId !== userId) {
+  if (!account || account.userId !== userId) {
     throw new NotFoundError('Account');
   }
 
@@ -51,7 +42,7 @@ export async function create(userId: string, data: CreateAccountInput) {
     _max: { sortOrder: true },
   });
 
-  const account = await prisma.account.create({
+  return prisma.account.create({
     data: {
       name: data.name,
       type: data.type,
@@ -68,20 +59,10 @@ export async function create(userId: string, data: CreateAccountInput) {
       userId,
     },
   });
-
-  return account;
 }
 
 export async function update(id: string, userId: string, data: UpdateAccountInput) {
-  const account = await prisma.account.findUnique({ where: { id } });
-
-  if (!account) {
-    throw new NotFoundError('Account');
-  }
-
-  if (account.userId !== userId) {
-    throw new NotFoundError('Account');
-  }
+  await getById(id, userId);
 
   const updateData: Prisma.AccountUpdateInput = {};
 
@@ -97,30 +78,12 @@ export async function update(id: string, userId: string, data: UpdateAccountInpu
   if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder;
   if (data.notes !== undefined) updateData.notes = data.notes;
 
-  const updated = await prisma.account.update({
-    where: { id },
-    data: updateData,
-  });
-
-  return updated;
+  return prisma.account.update({ where: { id }, data: updateData });
 }
 
 export async function remove(id: string, userId: string) {
-  const account = await prisma.account.findUnique({ where: { id } });
-
-  if (!account) {
-    throw new NotFoundError('Account');
-  }
-
-  if (account.userId !== userId) {
-    throw new NotFoundError('Account');
-  }
-
-  // Soft-delete: archive instead of hard delete
-  await prisma.account.update({
-    where: { id },
-    data: { isActive: false },
-  });
+  await getById(id, userId);
+  await prisma.account.update({ where: { id }, data: { isActive: false } });
 }
 
 export async function reorder(userId: string, data: ReorderAccountsInput) {
@@ -143,68 +106,35 @@ export async function getSummary(userId: string) {
   const onBudget = accounts.filter((a) => a.includeInBudget);
   const offBudget = accounts.filter((a) => !a.includeInBudget);
 
-  const netWorth = accounts
-    .filter((a) => a.includeInTotal)
-    .reduce((sum, a) => sum + a.currentBalance.toNumber(), 0);
-
-  const onBudgetTotal = onBudget.reduce((sum, a) => sum + a.currentBalance.toNumber(), 0);
-  const offBudgetTotal = offBudget.reduce((sum, a) => sum + a.currentBalance.toNumber(), 0);
+  const sumBalance = (list: typeof accounts, filter?: (a: typeof accounts[0]) => boolean) =>
+    (filter ? list.filter(filter) : list).reduce((sum, a) => sum + toNumber(a.currentBalance), 0);
 
   return {
-    accounts: accounts.map((a) => ({
-      ...a,
-      initialBalance: a.initialBalance.toNumber(),
-      currentBalance: a.currentBalance.toNumber(),
-    })),
-    onBudget: onBudget.map((a) => ({
-      ...a,
-      initialBalance: a.initialBalance.toNumber(),
-      currentBalance: a.currentBalance.toNumber(),
-    })),
-    offBudget: offBudget.map((a) => ({
-      ...a,
-      initialBalance: a.initialBalance.toNumber(),
-      currentBalance: a.currentBalance.toNumber(),
-    })),
-    netWorth,
-    onBudgetTotal,
-    offBudgetTotal,
+    accounts: accounts.map(serializeAccount),
+    onBudget: onBudget.map(serializeAccount),
+    offBudget: offBudget.map(serializeAccount),
+    netWorth: sumBalance(accounts, (a) => a.includeInTotal),
+    onBudgetTotal: sumBalance(onBudget),
+    offBudgetTotal: sumBalance(offBudget),
   };
 }
 
-/**
- * Recalculates an account's balance from its initial balance + all transactions.
- * Use this for reconciliation or fixing drift.
- */
 export async function reconcileBalance(id: string, userId: string) {
   const account = await getById(id, userId);
 
-  // Sum all income/expense transactions on this account
   const [incomeResult, expenseResult, outgoingTransfers, incomingTransfers] = await Promise.all([
-    prisma.transaction.aggregate({
-      where: { accountId: id, type: 'INCOME' },
-      _sum: { amount: true },
-    }),
-    prisma.transaction.aggregate({
-      where: { accountId: id, type: 'EXPENSE' },
-      _sum: { amount: true },
-    }),
-    prisma.transaction.aggregate({
-      where: { accountId: id, type: 'TRANSFER' },
-      _sum: { amount: true },
-    }),
-    prisma.transaction.aggregate({
-      where: { transferAccountId: id, type: 'TRANSFER' },
-      _sum: { amount: true },
-    }),
+    prisma.transaction.aggregate({ where: { accountId: id, type: 'INCOME' }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({ where: { accountId: id, type: 'EXPENSE' }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({ where: { accountId: id, type: 'TRANSFER' }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({ where: { transferAccountId: id, type: 'TRANSFER' }, _sum: { amount: true } }),
   ]);
 
-  const income = incomeResult._sum.amount?.toNumber() ?? 0;
-  const expense = expenseResult._sum.amount?.toNumber() ?? 0;
-  const outgoing = outgoingTransfers._sum.amount?.toNumber() ?? 0;
-  const incoming = incomingTransfers._sum.amount?.toNumber() ?? 0;
-
-  const computedBalance = account.initialBalance.toNumber() + income - expense - outgoing + incoming;
+  const computedBalance =
+    toNumber(account.initialBalance) +
+    toNumber(incomeResult._sum.amount) -
+    toNumber(expenseResult._sum.amount) -
+    toNumber(outgoingTransfers._sum.amount) +
+    toNumber(incomingTransfers._sum.amount);
 
   const updated = await prisma.account.update({
     where: { id },
@@ -212,9 +142,9 @@ export async function reconcileBalance(id: string, userId: string) {
   });
 
   return {
-    previousBalance: account.currentBalance.toNumber(),
+    previousBalance: toNumber(account.currentBalance),
     computedBalance,
-    wasCorrect: account.currentBalance.toNumber() === computedBalance,
-    account: { ...updated, currentBalance: updated.currentBalance.toNumber(), initialBalance: updated.initialBalance.toNumber() },
+    wasCorrect: toNumber(account.currentBalance) === computedBalance,
+    account: serializeAccount(updated),
   };
 }

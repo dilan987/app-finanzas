@@ -32,7 +32,7 @@ import ProgressBar from '../components/ui/ProgressBar';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { goalsApi } from '../api/goals.api';
 import { formatCurrency } from '../utils/formatCurrency';
-import { GOAL_STATUSES, CONTRIBUTION_FREQUENCIES } from '../utils/constants';
+import { GOAL_STATUSES, CONTRIBUTION_FREQUENCIES, MONTH_NAMES, getMonthLabel } from '../utils/constants';
 import type {
   Goal,
   GoalProjection,
@@ -42,16 +42,6 @@ import type {
   CreateGoalData,
   UpdateGoalData,
 } from '../types';
-
-const MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
-
-function getMonthLabel(month: number | null): string {
-  if (month == null) return '';
-  return MONTHS[month - 1] ?? '';
-}
 
 function getStatusBadge(status: GoalStatus): { variant: 'info' | 'income' | 'neutral'; label: string } {
   const s = GOAL_STATUSES.find((st) => st.value === status);
@@ -440,7 +430,7 @@ export default function GoalsPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 pb-24 sm:p-6 sm:pb-6">
+    <div className="space-y-6 p-4 pb-24 sm:p-6 sm:pb-6" data-tour="goals-list">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -765,7 +755,7 @@ export default function GoalsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <Select
                     label="Mes de inicio"
-                    options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))}
+                    options={MONTH_NAMES.map((m, i) => ({ value: String(i + 1), label: m }))}
                     value={form.startMonth}
                     onChange={(e) => setForm((f) => ({ ...f, startMonth: e.target.value }))}
                   />
