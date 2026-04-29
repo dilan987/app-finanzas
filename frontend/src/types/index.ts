@@ -14,7 +14,7 @@ export type AccountType =
   | 'LOAN'
   | 'OTHER';
 
-export type Frequency = 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'YEARLY';
+export type Frequency = 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'YEARLY' | 'ONCE';
 
 export type InvestmentType = 'STOCKS' | 'CDT' | 'CRYPTO' | 'FUND' | 'FOREX' | 'OTHER';
 
@@ -63,6 +63,9 @@ export interface User {
   name: string;
   mainCurrency: string;
   timezone: string;
+  biweeklyCustomEnabled?: boolean;
+  biweeklyStartDay1?: number | null;
+  biweeklyStartDay2?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -494,6 +497,9 @@ export interface UpdateProfileData {
   name?: string;
   mainCurrency?: string;
   timezone?: string;
+  biweeklyCustomEnabled?: boolean;
+  biweeklyStartDay1?: number | null;
+  biweeklyStartDay2?: number | null;
 }
 
 export interface MonthlyStats {
@@ -522,4 +528,43 @@ export interface CreateAccountData {
 export interface UpdateAccountData extends Partial<CreateAccountData> {
   isActive?: boolean;
   sortOrder?: number;
+}
+
+// ── Biweekly cashflow (real transactions) ─────────────────────────
+
+export type BiweeklyMode = 'calendar' | 'custom';
+
+export interface BiweeklyCashflowEntry {
+  id: string;
+  date: string;
+  type: TransactionType;
+  amount: number;
+  currency: string;
+  description: string | null;
+  category: { id: string; name: string; color: string; icon: string } | null;
+  account: { id: string; name: string } | null;
+  paymentMethod: PaymentMethod;
+}
+
+export interface BiweeklyCashflowBucket {
+  half: 1 | 2;
+  rangeStart: string;
+  rangeEnd: string;
+  rangeLabel: string;
+  entries: BiweeklyCashflowEntry[];
+  totalIncome: number;
+  totalExpense: number;
+  netBalance: number;
+}
+
+export interface BiweeklyCashflowResponse {
+  month: number;
+  year: number;
+  mode: BiweeklyMode;
+  buckets: [BiweeklyCashflowBucket, BiweeklyCashflowBucket];
+  monthTotals: {
+    totalIncome: number;
+    totalExpense: number;
+    netBalance: number;
+  };
 }

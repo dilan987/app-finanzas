@@ -18,7 +18,10 @@ async function findOwned(id: string, userId: string) {
   return recurring;
 }
 
-function calculateNextExecutionDate(currentDate: Date, frequency: Frequency): Date {
+export function calculateNextExecutionDate(
+  currentDate: Date,
+  frequency: Exclude<Frequency, 'ONCE'>,
+): Date {
   const next = new Date(currentDate);
   switch (frequency) {
     case 'DAILY': next.setDate(next.getDate() + 1); break;
@@ -145,10 +148,22 @@ export async function processRecurring() {
           });
         }
 
-        await tx.recurringTransaction.update({
-          where: { id: recurring.id },
-          data: { nextExecutionDate: calculateNextExecutionDate(recurring.nextExecutionDate, recurring.frequency) },
-        });
+        if (recurring.frequency === 'ONCE') {
+          await tx.recurringTransaction.update({
+            where: { id: recurring.id },
+            data: { isActive: false },
+          });
+        } else {
+          await tx.recurringTransaction.update({
+            where: { id: recurring.id },
+            data: {
+              nextExecutionDate: calculateNextExecutionDate(
+                recurring.nextExecutionDate,
+                recurring.frequency,
+              ),
+            },
+          });
+        }
       });
 
       if (recurring.goalId) await checkAutoComplete(recurring.goalId);

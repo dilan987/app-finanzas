@@ -24,7 +24,7 @@ import { goalsApi } from '../api/goals.api';
 import { useFormModal } from '../hooks/useFormModal';
 import { useDeleteConfirm } from '../hooks/useDeleteConfirm';
 import { formatCurrency } from '../utils/formatCurrency';
-import { formatShortDate } from '../utils/formatDate';
+import { formatDateOnly } from '../utils/formatDate';
 import { FREQUENCIES, PAYMENT_METHODS } from '../utils/constants';
 import type {
   RecurringTransaction,
@@ -66,6 +66,8 @@ function getFrequencyLabel(freq: Frequency): string {
   return FREQUENCIES.find((f) => f.value === freq)?.label ?? freq;
 }
 
+type ScheduleFilter = 'all' | 'repeating' | 'once';
+
 export default function RecurringPage() {
   const [items, setItems] = useState<RecurringTransaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -73,6 +75,7 @@ export default function RecurringPage() {
   const [activeGoals, setActiveGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<ScheduleFilter>('all');
 
   const modal = useFormModal<RecurringFormState>(initialForm);
 
@@ -182,21 +185,51 @@ export default function RecurringPage() {
     );
   }
 
+  const visibleItems = items.filter((i) => {
+    if (filter === 'repeating') return i.frequency !== 'ONCE';
+    if (filter === 'once') return i.frequency === 'ONCE';
+    return true;
+  });
+
   return (
     <div className="space-y-6 p-6" data-tour="recurring-list">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Transacciones Recurrentes</h1>
-          <p className="mt-1 text-sm text-text-secondary">Gestiona pagos e ingresos que se repiten automaticamente</p>
+          <h1 className="text-2xl font-bold text-text-primary">Movimientos programados</h1>
+          <p className="mt-1 text-sm text-text-secondary">
+            Pagos e ingresos repetitivos o puntuales con fecha programada
+          </p>
         </div>
-        <Button icon={<HiPlus className="h-4 w-4" />} onClick={modal.openCreate}>Nueva Recurrencia</Button>
+        <Button icon={<HiPlus className="h-4 w-4" />} onClick={modal.openCreate}>Nuevo movimiento</Button>
       </div>
 
-      {items.length === 0 ? (
-        <EmptyState icon={<HiArrowPath className="h-8 w-8" />} title="Sin recurrencias" description="Configura pagos o ingresos que se repiten automaticamente." actionLabel="Crear Recurrencia" onAction={modal.openCreate} />
+      {/* Filter chips */}
+      <div className="flex flex-wrap gap-2">
+        {([
+          { value: 'all', label: 'Todos' },
+          { value: 'repeating', label: 'Repetitivos' },
+          { value: 'once', label: 'Puntuales' },
+        ] as const).map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setFilter(opt.value)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 ${
+              filter === opt.value
+                ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300'
+                : 'border-border-primary text-text-secondary hover:bg-surface-secondary dark:hover:bg-surface-tertiary'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {visibleItems.length === 0 ? (
+        <EmptyState icon={<HiArrowPath className="h-8 w-8" />} title="Sin movimientos" description="Configura pagos o ingresos programados, repetitivos o puntuales." actionLabel="Crear movimiento" onAction={modal.openCreate} />
       ) : (
         <div className="space-y-3">
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <div key={item.id} className={`group rounded-xl border border-border-primary bg-surface-card p-4 shadow-card transition-all hover:shadow-card-hover ${!item.isActive ? 'opacity-60' : ''}`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4 min-w-0 flex-1">
@@ -205,12 +238,15 @@ export default function RecurringPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-text-primary truncate">{item.description}</p>
                       <Badge variant={item.type === 'INCOME' ? 'income' : 'expense'}>{item.type === 'INCOME' ? 'Ingreso' : 'Gasto'}</Badge>
+                      {item.frequency === 'ONCE' && !item.isActive ? (
+                        <Badge variant="neutral">Ejecutado</Badge>
+                      ) : null}
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-tertiary">
                       {item.category?.name && <span>{item.category.name}</span>}
                       <Badge variant="neutral">{getFrequencyLabel(item.frequency)}</Badge>
                       {item.account && <Badge variant="info">{item.account.name}</Badge>}
-                      <span>Proxima: {formatShortDate(item.nextExecutionDate)}</span>
+                      <span>{item.frequency === 'ONCE' ? 'Fecha' : 'Proxima'}: {formatDateOnly(item.nextExecutionDate)}</span>
                     </div>
                   </div>
                 </div>
@@ -229,7 +265,7 @@ export default function RecurringPage() {
         </div>
       )}
 
-      <Modal isOpen={modal.isOpen} onClose={modal.close} title={modal.editingId ? 'Editar Recurrencia' : 'Nueva Recurrencia'} size="lg" footer={<><Button variant="secondary" onClick={modal.close} disabled={modal.saving}>Cancelar</Button><Button onClick={handleSubmit} loading={modal.saving}>{modal.editingId ? 'Guardar Cambios' : 'Crear Recurrencia'}</Button></>}>
+      <Modal isOpen={modal.isOpen} onClose={modal.close} title={modal.editingId ? 'Editar movimiento' : 'Nuevo movimiento'} size="lg" footer={<><Button variant="secondary" onClick={modal.close} disabled={modal.saving}>Cancelar</Button><Button onClick={handleSubmit} loading={modal.saving}>{modal.editingId ? 'Guardar Cambios' : 'Crear movimiento'}</Button></>}>
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-text-secondary">Tipo</label>
@@ -245,6 +281,11 @@ export default function RecurringPage() {
             <Select label="Frecuencia" options={FREQUENCIES} value={modal.form.frequency} onChange={(e) => modal.setForm((f) => ({ ...f, frequency: e.target.value as Frequency }))} />
             <Select label="Metodo de pago" options={PAYMENT_METHODS} value={modal.form.paymentMethod} onChange={(e) => modal.setForm((f) => ({ ...f, paymentMethod: e.target.value as PaymentMethod }))} />
           </div>
+          {modal.form.frequency === 'ONCE' ? (
+            <p className="-mt-2 text-xs text-text-tertiary">
+              Se ejecutará una sola vez en esta fecha y luego quedará archivado.
+            </p>
+          ) : null}
           {accounts.length > 0 && (
             <Select label="Cuenta" options={[{ value: '', label: 'Sin cuenta' }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]} value={modal.form.accountId} onChange={(e) => modal.setForm((f) => ({ ...f, accountId: e.target.value }))} />
           )}
@@ -253,7 +294,14 @@ export default function RecurringPage() {
             if (filteredGoals.length === 0) return null;
             return <Select label="Meta (opcional)" value={modal.form.goalId} onChange={(e) => modal.setForm((f) => ({ ...f, goalId: e.target.value }))} options={[{ value: '', label: 'Sin meta' }, ...filteredGoals.map((g) => ({ value: g.id, label: `${g.name} (${Math.round(g.progress)}%)` }))]} />;
           })()}
-          <DatePicker label="Proxima ejecucion" value={modal.form.nextExecutionDate} onChange={(e) => modal.setForm((f) => ({ ...f, nextExecutionDate: e.target.value }))} />
+          <DatePicker label={modal.form.frequency === 'ONCE' ? 'Fecha de ejecución' : 'Próxima ejecución'} value={modal.form.nextExecutionDate} onChange={(e) => modal.setForm((f) => ({ ...f, nextExecutionDate: e.target.value }))} />
+          {modal.form.frequency === 'ONCE' &&
+            modal.form.nextExecutionDate &&
+            modal.form.nextExecutionDate < new Date().toISOString().split('T')[0]! ? (
+            <p className="rounded-md border border-warning/30 bg-warning-bg px-3 py-2 text-xs text-warning-dark dark:border-warning-light/20 dark:bg-[rgba(245,158,11,0.08)] dark:text-warning-light">
+              La fecha es pasada. El movimiento se ejecutará en la próxima corrida del proceso.
+            </p>
+          ) : null}
         </div>
       </Modal>
 

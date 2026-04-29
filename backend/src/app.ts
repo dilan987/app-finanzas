@@ -20,6 +20,7 @@ import reportsRoutes from './modules/reports/reports.routes';
 import accountsRoutes from './modules/accounts/accounts.routes';
 import goalsRoutes from './modules/goals/goals.routes';
 import onboardingRoutes from './modules/onboarding/onboarding.routes';
+import cashflowRoutes from './modules/cashflow/cashflow.routes';
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.use('/api/reports', authMiddleware, reportsRoutes);
 app.use('/api/accounts', authMiddleware, accountsRoutes);
 app.use('/api/goals', authMiddleware, goalsRoutes);
 app.use('/api/onboarding', authMiddleware, onboardingRoutes);
+app.use('/api/cashflow', authMiddleware, cashflowRoutes);
 
 // Error handling
 app.use(errorMiddleware);

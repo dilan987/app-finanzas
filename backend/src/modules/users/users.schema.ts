@@ -1,21 +1,42 @@
 import { z } from 'zod';
 
-export const updateProfileSchema = z.object({
-  name: z
-    .string()
-    .min(2, 'Name must be at least 2 characters')
-    .trim()
-    .optional(),
-  mainCurrency: z
-    .string()
-    .min(1, 'Currency code is required')
-    .max(10, 'Currency code is too long')
-    .optional(),
-  timezone: z
-    .string()
-    .min(1, 'Timezone is required')
-    .optional(),
-});
+export const updateProfileSchema = z
+  .object({
+    name: z
+      .string()
+      .min(2, 'Name must be at least 2 characters')
+      .trim()
+      .optional(),
+    mainCurrency: z
+      .string()
+      .min(1, 'Currency code is required')
+      .max(10, 'Currency code is too long')
+      .optional(),
+    timezone: z
+      .string()
+      .min(1, 'Timezone is required')
+      .optional(),
+    biweeklyCustomEnabled: z.boolean().optional(),
+    biweeklyStartDay1: z.number().int().min(1).max(31).nullable().optional(),
+    biweeklyStartDay2: z.number().int().min(1).max(31).nullable().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.biweeklyCustomEnabled === true) {
+      if (data.biweeklyStartDay1 == null || data.biweeklyStartDay2 == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['biweeklyStartDay1'],
+          message: 'Both biweeklyStartDay1 and biweeklyStartDay2 are required when custom is enabled',
+        });
+      } else if (data.biweeklyStartDay1 === data.biweeklyStartDay2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['biweeklyStartDay2'],
+          message: 'biweeklyStartDay1 and biweeklyStartDay2 must be different',
+        });
+      }
+    }
+  });
 
 const passwordSchema = z
   .string()

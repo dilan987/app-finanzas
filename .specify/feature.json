@@ -1,8 +1,8 @@
 {
-  "current_feature": "008-onboarding-tour",
-  "spec_path": "specs/008-onboarding-tour/spec.md",
-  "plan_path": "specs/008-onboarding-tour/plan.md",
-  "tasks_path": "specs/008-onboarding-tour/tasks.md",
+  "current_feature": "010-biweekly-cashflow",
+  "spec_path": "specs/010-biweekly-cashflow/spec.md",
+  "plan_path": "specs/010-biweekly-cashflow/plan.md",
+  "tasks_path": "specs/010-biweekly-cashflow/tasks.md",
   "created_at": "2026-04-27",
   "implemented_at": "2026-04-27",
   "status": "implemented"

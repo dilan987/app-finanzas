@@ -174,6 +174,105 @@ describe('Users Module', () => {
     });
   });
 
+  describe('PUT /api/users/profile (biweekly config)', () => {
+    it('should accept enabling custom with valid days 30/15', async () => {
+      const updated = {
+        ...TEST_USER_PROFILE,
+        biweeklyCustomEnabled: true,
+        biweeklyStartDay1: 30,
+        biweeklyStartDay2: 15,
+      };
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(TEST_USER);
+      (mockPrisma.user.update as jest.Mock).mockResolvedValue(updated);
+
+      const res = await request(app)
+        .put('/api/users/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          biweeklyCustomEnabled: true,
+          biweeklyStartDay1: 30,
+          biweeklyStartDay2: 15,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.biweeklyCustomEnabled).toBe(true);
+      expect(res.body.data.biweeklyStartDay1).toBe(30);
+      expect(res.body.data.biweeklyStartDay2).toBe(15);
+    });
+
+    it('should return 422 when enabling custom without days', async () => {
+      const res = await request(app)
+        .put('/api/users/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ biweeklyCustomEnabled: true });
+
+      expect(res.status).toBe(422);
+    });
+
+    it('should return 422 when day1 equals day2 with custom enabled', async () => {
+      const res = await request(app)
+        .put('/api/users/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          biweeklyCustomEnabled: true,
+          biweeklyStartDay1: 15,
+          biweeklyStartDay2: 15,
+        });
+
+      expect(res.status).toBe(422);
+    });
+
+    it('should return 422 when day is out of range', async () => {
+      const res = await request(app)
+        .put('/api/users/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          biweeklyCustomEnabled: true,
+          biweeklyStartDay1: 32,
+          biweeklyStartDay2: 15,
+        });
+
+      expect(res.status).toBe(422);
+    });
+
+    it('should accept disabling custom', async () => {
+      const updated = {
+        ...TEST_USER_PROFILE,
+        biweeklyCustomEnabled: false,
+        biweeklyStartDay1: 30,
+        biweeklyStartDay2: 15,
+      };
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(TEST_USER);
+      (mockPrisma.user.update as jest.Mock).mockResolvedValue(updated);
+
+      const res = await request(app)
+        .put('/api/users/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ biweeklyCustomEnabled: false });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.biweeklyCustomEnabled).toBe(false);
+    });
+
+    it('should not touch biweekly fields when only name changes', async () => {
+      const updated = { ...TEST_USER_PROFILE, name: 'New Name' };
+      (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(TEST_USER);
+      (mockPrisma.user.update as jest.Mock).mockResolvedValue(updated);
+
+      const res = await request(app)
+        .put('/api/users/profile')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ name: 'New Name' });
+
+      expect(res.status).toBe(200);
+      expect(mockPrisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.not.objectContaining({ biweeklyCustomEnabled: expect.anything() }),
+        }),
+      );
+    });
+  });
+
   describe('DELETE /api/users/account', () => {
     it('should delete the user account', async () => {
       (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(TEST_USER);

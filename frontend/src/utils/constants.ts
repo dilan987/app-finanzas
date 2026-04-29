@@ -15,6 +15,7 @@ export const FREQUENCIES: { value: Frequency; label: string }[] = [
   { value: 'BIWEEKLY', label: 'Quincenal' },
   { value: 'MONTHLY', label: 'Mensual' },
   { value: 'YEARLY', label: 'Anual' },
+  { value: 'ONCE', label: 'Solo una vez' },
 ];
 
 export const INVESTMENT_TYPES: { value: InvestmentType; label: string }[] = [

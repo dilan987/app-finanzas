@@ -1,6 +1,7 @@
 import request from 'supertest';
 import express from 'express';
 import { Decimal } from '@prisma/client/runtime/library';
+import type { Frequency } from '@prisma/client';
 
 const mockTransaction = jest.fn();
 
@@ -63,7 +64,7 @@ const RECURRING = {
   description: 'Netflix subscription',
   categoryId: '00000000-0000-0000-0000-000000000001',
   userId: 'user-1',
-  frequency: 'MONTHLY' as const,
+  frequency: 'MONTHLY' as Frequency,
   nextExecutionDate: new Date('2026-04-01T00:00:00.000Z'),
   isActive: true,
   paymentMethod: 'CREDIT_CARD' as const,
@@ -380,5 +381,99 @@ describe('Recurring Transactions Module', () => {
       expect(res.body.data.total).toBe(0);
       expect(res.body.data.processed).toBe(0);
     });
+
+    it('should deactivate a ONCE movement after execution and not advance next date', async () => {
+      const onceRec = {
+        ...RECURRING,
+        id: 'rec-once',
+        frequency: 'ONCE' as const,
+        nextExecutionDate: new Date('2026-03-15T00:00:00.000Z'),
+      };
+      (mockPrisma.recurringTransaction.findMany as jest.Mock).mockResolvedValue([onceRec]);
+
+      let txCreateCalled = false;
+      let recurringUpdateArgs: Record<string, unknown> | null = null;
+
+      mockTransaction.mockImplementation(async (fn: (tx: Record<string, unknown>) => Promise<void>) => {
+        await fn({
+          transaction: {
+            create: jest.fn().mockImplementation(() => {
+              txCreateCalled = true;
+              return Promise.resolve({});
+            }),
+          },
+          recurringTransaction: {
+            update: jest.fn().mockImplementation((args: Record<string, unknown>) => {
+              recurringUpdateArgs = args;
+              return Promise.resolve({});
+            }),
+          },
+          account: { update: jest.fn() },
+        });
+      });
+
+      const res = await request(app).post('/api/recurring/process');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.processed).toBe(1);
+      expect(txCreateCalled).toBe(true);
+      expect(recurringUpdateArgs).not.toBeNull();
+      const data = (recurringUpdateArgs as unknown as { data: Record<string, unknown> }).data;
+      expect(data.isActive).toBe(false);
+      expect(data.nextExecutionDate).toBeUndefined();
+    });
+
+    it('should advance next date for repeating frequency (no regression)', async () => {
+      const monthlyRec = {
+        ...RECURRING,
+        id: 'rec-monthly',
+        nextExecutionDate: new Date('2026-03-01T00:00:00.000Z'),
+      };
+      (mockPrisma.recurringTransaction.findMany as jest.Mock).mockResolvedValue([monthlyRec]);
+
+      let recurringUpdateArgs: Record<string, unknown> | null = null;
+      mockTransaction.mockImplementation(async (fn: (tx: Record<string, unknown>) => Promise<void>) => {
+        await fn({
+          transaction: { create: jest.fn() },
+          recurringTransaction: {
+            update: jest.fn().mockImplementation((args: Record<string, unknown>) => {
+              recurringUpdateArgs = args;
+              return Promise.resolve({});
+            }),
+          },
+          account: { update: jest.fn() },
+        });
+      });
+
+      const res = await request(app).post('/api/recurring/process');
+      expect(res.status).toBe(200);
+      const data = (recurringUpdateArgs as unknown as { data: Record<string, unknown> }).data;
+      expect(data.nextExecutionDate).toBeDefined();
+      expect(data.isActive).toBeUndefined();
+    });
   });
+
+  describe('POST /api/recurring (ONCE creation)', () => {
+    it('should accept frequency ONCE on create', async () => {
+      (mockPrisma.category.findUnique as jest.Mock).mockResolvedValue(CATEGORY);
+      (mockPrisma.recurringTransaction.create as jest.Mock).mockResolvedValue({
+        ...RECURRING,
+        frequency: 'ONCE',
+      });
+
+      const res = await request(app).post('/api/recurring').send({
+        type: 'EXPENSE',
+        amount: 300000,
+        description: 'Cumpleaños mamá',
+        categoryId: '00000000-0000-0000-0000-000000000001',
+        frequency: 'ONCE',
+        nextExecutionDate: '2026-05-23T00:00:00.000Z',
+        paymentMethod: 'CASH',
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.frequency).toBe('ONCE');
+    });
+  });
+
 });

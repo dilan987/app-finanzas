@@ -8,6 +8,9 @@ interface UserProfile {
   name: string;
   mainCurrency: string;
   timezone: string;
+  biweeklyCustomEnabled: boolean;
+  biweeklyStartDay1: number | null;
+  biweeklyStartDay2: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -16,6 +19,9 @@ interface UpdateProfileData {
   name?: string;
   mainCurrency?: string;
   timezone?: string;
+  biweeklyCustomEnabled?: boolean;
+  biweeklyStartDay1?: number | null;
+  biweeklyStartDay2?: number | null;
 }
 
 const BCRYPT_ROUNDS = 12;
@@ -29,6 +35,9 @@ export async function getProfile(userId: string): Promise<UserProfile> {
       name: true,
       mainCurrency: true,
       timezone: true,
+      biweeklyCustomEnabled: true,
+      biweeklyStartDay1: true,
+      biweeklyStartDay2: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -60,6 +69,9 @@ export async function updateProfile(
       name: true,
       mainCurrency: true,
       timezone: true,
+      biweeklyCustomEnabled: true,
+      biweeklyStartDay1: true,
+      biweeklyStartDay2: true,
       createdAt: true,
       updatedAt: true,
     },

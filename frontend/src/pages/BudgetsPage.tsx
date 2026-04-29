@@ -24,6 +24,7 @@ import ProgressBar from '../components/ui/ProgressBar';
 import MonthSelector from '../components/ui/MonthSelector';
 import StatCard from '../components/ui/StatCard';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import BiweeklyTimeline from '../components/budgets/BiweeklyTimeline';
 import { useUiStore } from '../store/uiStore';
 import { budgetsApi } from '../api/budgets.api';
 import { categoriesApi } from '../api/categories.api';
@@ -100,6 +101,7 @@ export default function BudgetsPage() {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [view, setView] = useState<'monthly' | 'biweekly'>('monthly');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -403,23 +405,56 @@ export default function BudgetsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">
-            Proyeccion del Mes
+            {view === 'monthly' ? 'Proyeccion del Mes' : 'Proyección por quincena'}
           </h1>
           <p className="mt-1 text-sm text-text-secondary">
-            Planifica tus ingresos y gastos, compara con lo real
+            {view === 'monthly'
+              ? 'Planifica tus ingresos y gastos, compara con lo real'
+              : 'Cómo se distribuyen tus movimientos programados durante el mes'}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <MonthSelector />
-          <Button variant="secondary" icon={<HiPlus className="h-4 w-4" />} onClick={() => openCreate('INCOME')}>
-            Ingreso
-          </Button>
-          <Button icon={<HiPlus className="h-4 w-4" />} onClick={() => openCreate('EXPENSE')}>
-            Gasto
-          </Button>
+          {view === 'monthly' ? (
+            <>
+              <Button variant="secondary" icon={<HiPlus className="h-4 w-4" />} onClick={() => openCreate('INCOME')}>
+                Ingreso
+              </Button>
+              <Button icon={<HiPlus className="h-4 w-4" />} onClick={() => openCreate('EXPENSE')}>
+                Gasto
+              </Button>
+            </>
+          ) : null}
         </div>
       </div>
 
+      {/* View tabs */}
+      <div role="tablist" className="inline-flex rounded-lg border border-border-primary bg-surface-card p-1">
+        {([
+          { value: 'monthly', label: 'Mensual' },
+          { value: 'biweekly', label: 'Quincenal' },
+        ] as const).map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            role="tab"
+            aria-selected={view === opt.value}
+            onClick={() => setView(opt.value)}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 ${
+              view === opt.value
+                ? 'bg-primary-500 text-white shadow-sm'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'biweekly' ? (
+        <BiweeklyTimeline month={currentMonth} year={currentYear} />
+      ) : (
+        <>
       {/* Summary Cards */}
       {items.length > 0 && (
         <>
@@ -623,6 +658,8 @@ export default function BudgetsPage() {
             })}
           </div>
         </div>
+      )}
+        </>
       )}
 
       {/* Create/Edit Modal */}

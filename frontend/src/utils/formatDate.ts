@@ -95,3 +95,28 @@ export function toISODateString(value: string | Date): string {
   const d = toDate(value);
   return d.toISOString().split('T')[0]!;
 }
+
+/**
+ * Format a date that represents a calendar day (no time component) without
+ * applying the local timezone offset. Use this for fields like
+ * `nextExecutionDate` of scheduled movements, where the value is stored as
+ * UTC midnight but conceptually is "day X" regardless of timezone.
+ *
+ * "2026-05-01T00:00:00.000Z" → "01/05/2026" (always, in any timezone).
+ */
+export function formatDateOnly(value: string | Date): string {
+  if (typeof value === 'string') {
+    const datePart = value.split('T')[0];
+    if (datePart && /^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+      const [y, m, d] = datePart.split('-');
+      return `${d}/${m}/${y}`;
+    }
+  }
+  const d = toDate(value);
+  return d.toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}

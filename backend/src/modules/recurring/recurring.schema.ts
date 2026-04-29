@@ -14,8 +14,8 @@ export const createRecurringSchema = z.object({
     .trim()
     .optional(),
   categoryId: z.string().min(1, 'Category ID is required'),
-  frequency: z.enum(['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY'], {
-    message: 'Frequency must be DAILY, WEEKLY, BIWEEKLY, MONTHLY, or YEARLY',
+  frequency: z.enum(['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'YEARLY', 'ONCE'], {
+    message: 'Frequency must be DAILY, WEEKLY, BIWEEKLY, MONTHLY, YEARLY, or ONCE',
   }),
   nextExecutionDate: z
     .string()

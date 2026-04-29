@@ -10,15 +10,18 @@ import {
   HiEye,
   HiEyeSlash,
   HiAcademicCap,
+  HiCalendarDays,
 } from 'react-icons/hi2';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
+import Toggle from '../components/ui/Toggle';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { useOnboardingStore } from '../store/onboardingStore';
 import { usersApi } from '../api/users.api';
+import { computeBiweeklyRanges } from '../utils/biweekly';
 
 const CURRENCY_OPTIONS = [
   { value: 'COP', label: 'COP - Peso colombiano' },
@@ -57,12 +60,59 @@ export default function SettingsPage() {
   const [showDeleteSecond, setShowDeleteSecond] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
+  // Biweekly state
+  const [biweeklyEnabled, setBiweeklyEnabled] = useState<boolean>(user?.biweeklyCustomEnabled ?? false);
+  const [biweeklyDay1, setBiweeklyDay1] = useState<number>(user?.biweeklyStartDay1 ?? 1);
+  const [biweeklyDay2, setBiweeklyDay2] = useState<number>(user?.biweeklyStartDay2 ?? 16);
+  const [savingBiweekly, setSavingBiweekly] = useState(false);
+  const [biweeklyError, setBiweeklyError] = useState<string | null>(null);
+
   useEffect(() => {
     if (user) {
       setName(user.name);
       setMainCurrency(user.mainCurrency);
+      setBiweeklyEnabled(user.biweeklyCustomEnabled ?? false);
+      if (user.biweeklyStartDay1 != null) setBiweeklyDay1(user.biweeklyStartDay1);
+      if (user.biweeklyStartDay2 != null) setBiweeklyDay2(user.biweeklyStartDay2);
     }
   }, [user]);
+
+  const validateBiweekly = (): string | null => {
+    if (!biweeklyEnabled) return null;
+    if (!Number.isInteger(biweeklyDay1) || !Number.isInteger(biweeklyDay2)) {
+      return 'Los días deben ser números enteros';
+    }
+    if (biweeklyDay1 < 1 || biweeklyDay1 > 31 || biweeklyDay2 < 1 || biweeklyDay2 > 31) {
+      return 'Los días deben estar entre 1 y 31';
+    }
+    if (biweeklyDay1 === biweeklyDay2) {
+      return 'Los días de inicio deben ser diferentes';
+    }
+    return null;
+  };
+
+  const handleSaveBiweekly = async () => {
+    const err = validateBiweekly();
+    if (err) {
+      setBiweeklyError(err);
+      return;
+    }
+    setBiweeklyError(null);
+    setSavingBiweekly(true);
+    try {
+      const res = await usersApi.updateProfile({
+        biweeklyCustomEnabled: biweeklyEnabled,
+        biweeklyStartDay1: biweeklyEnabled ? biweeklyDay1 : null,
+        biweeklyStartDay2: biweeklyEnabled ? biweeklyDay2 : null,
+      });
+      setUser(res.data.data);
+      toast.success('Configuración de quincenas guardada');
+    } catch {
+      toast.error('Error al guardar la configuración');
+    } finally {
+      setSavingBiweekly(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     if (!name.trim()) {
@@ -228,6 +278,92 @@ export default function SettingsPage() {
                 <p className="text-xs text-text-tertiary">Tema de noche</p>
               </div>
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Biweekly Config Card */}
+      <div className="rounded-xl border border-border-primary bg-surface-card p-6 shadow-card">
+        <div className="space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-400">
+              <HiCalendarDays className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary">Quincenas</h2>
+              <p className="text-sm text-text-secondary">
+                Configura los días que separan tus quincenas según tus ciclos de cobro
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-lg bg-surface-secondary p-4 dark:bg-surface-tertiary">
+            <div>
+              <p className="text-sm font-medium text-text-primary">Personalizar mis cortes</p>
+              <p className="mt-1 text-xs text-text-secondary">
+                Por defecto: Q1 días 1–15, Q2 días 16–fin del mes
+              </p>
+            </div>
+            <Toggle checked={biweeklyEnabled} onChange={setBiweeklyEnabled} />
+          </div>
+
+          {biweeklyEnabled ? (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Día de inicio Q1"
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={String(biweeklyDay1)}
+                  onChange={(e) => setBiweeklyDay1(Number(e.target.value))}
+                />
+                <Input
+                  label="Día de inicio Q2"
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={String(biweeklyDay2)}
+                  onChange={(e) => setBiweeklyDay2(Number(e.target.value))}
+                />
+              </div>
+
+              {/* Live preview */}
+              {(() => {
+                const err = validateBiweekly();
+                if (err) {
+                  return (
+                    <p className="rounded-md border border-warning/30 bg-warning-bg px-3 py-2 text-xs text-warning-dark dark:border-warning-light/20 dark:bg-[rgba(245,158,11,0.08)] dark:text-warning-light">
+                      {err}
+                    </p>
+                  );
+                }
+                const now = new Date();
+                const ranges = computeBiweeklyRanges(
+                  now.getMonth() + 1,
+                  now.getFullYear(),
+                  'custom',
+                  biweeklyDay1,
+                  biweeklyDay2,
+                );
+                return (
+                  <div className="rounded-md bg-primary-50 px-3 py-2 text-xs text-primary-700 dark:bg-primary-950/30 dark:text-primary-300">
+                    <strong>Vista previa para este mes:</strong>{' '}
+                    Primera quincena {ranges.q1.label}; Segunda quincena {ranges.q2.label}.
+                  </div>
+                );
+              })()}
+            </>
+          ) : null}
+
+          {biweeklyError ? (
+            <p className="text-xs text-expense dark:text-expense-light">{biweeklyError}</p>
+          ) : null}
+
+          <div className="flex justify-end">
+            <Button onClick={handleSaveBiweekly} loading={savingBiweekly}>
+              Guardar quincenas
+            </Button>
           </div>
         </div>
       </div>
